@@ -18,10 +18,10 @@ services:
       - --port
       - "8000"
 
+  # Use Flutter SDK image for dev (production image is nginx-only — no flutter binary)
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     volumes:
       - ./frontend:/app
-    command:
-      - bash
-      - -lc
-      - flutter pub get && flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0

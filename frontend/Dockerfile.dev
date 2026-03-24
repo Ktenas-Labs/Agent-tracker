@@ -1,0 +1,7 @@
+# Dev / hot-reload: same Flutter base as production build (not the nginx runtime image)
+FROM ghcr.io/cirruslabs/flutter:stable
+WORKDIR /app
+
+ENV FLUTTER_OPTS=--no-analytics
+
+CMD ["bash", "-lc", "flutter config --enable-web --no-analytics && flutter pub get && exec flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0"]

@@ -1,13 +1,13 @@
-FROM debian:bookworm-slim AS build
-
-RUN apt-get update && apt-get install -y curl unzip xz-utils git ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN git clone --depth 1 --branch stable https://github.com/flutter/flutter.git /opt/flutter
-ENV PATH="/opt/flutter/bin:${PATH}"
-
+# Production: prebuilt Flutter SDK (no git clone — faster, reliable multi-arch builds)
+FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
-COPY . .
+
+COPY pubspec.yaml ./
 RUN flutter config --enable-web --no-analytics \
-    && flutter pub get \
+    && flutter pub get
+
+COPY . .
+RUN flutter pub get \
     && flutter build web --release
 
 FROM nginx:alpine
