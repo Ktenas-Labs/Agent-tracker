@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: agent_tracker
+      POSTGRES_PASSWORD: agent_tracker
+      POSTGRES_DB: agent_tracker
+    ports:
+      # Use 5433 on host if you already run PostgreSQL locally on 5432
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent_tracker -d agent_tracker"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  backend:
+    build: ./backend
+    env_file:
+      - backend/.env
+    environment:
+      # Inside Compose, Postgres is reachable as host "db", not localhost
+      DATABASE_URL: postgresql+psycopg://agent_tracker:agent_tracker@db:5432/agent_tracker
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    env_file:
+      - frontend/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

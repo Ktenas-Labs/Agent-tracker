@@ -1,0 +1,8 @@
+project_id  = "my-gcp-project"
+region      = "us-central1"
+environment = "dev"
+db_tier     = "db-f1-micro"
+
+# Set after first `docker push` or leave empty to skip Cloud Run deploy
+# backend_image  = "us-central1-docker.pkg.dev/my-gcp-project/agent-tracker/backend:latest"
+# frontend_image = "us-central1-docker.pkg.dev/my-gcp-project/agent-tracker/frontend:latest"

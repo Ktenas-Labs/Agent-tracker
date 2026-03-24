@@ -1,0 +1,137 @@
+[
+  {
+    "id": "d85a0776-c56e-47ad-91ac-1ab0c845021b",
+    "region_id": "397bdd9b-7a01-426a-9fa2-765c1cef5bf2",
+    "name": "Base 1",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "8b3c14ac-d647-453a-bc55-9077f1092335",
+    "region_id": "1c1ff54f-fcd2-43d8-b334-630b2d1a16c2",
+    "name": "Base 2",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "2c522ffc-0d7b-4c22-ade8-dab77ef8551f",
+    "region_id": "d3645485-f8a0-4627-b9b4-3d78b43e07a9",
+    "name": "Base 3",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "3943ceb2-63f9-4675-b334-608f515d86b6",
+    "region_id": "35d5ed10-bad5-41bd-a747-a3491a0ad914",
+    "name": "Base 4",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "aac06938-7b0c-40ae-8cae-1677bbf23af3",
+    "region_id": "e5c6ce3d-5b00-4180-b0e3-a4de9f2cb962",
+    "name": "Base 5",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "98fc95d8-0000-4800-a9fc-d1380451f9a1",
+    "region_id": "397bdd9b-7a01-426a-9fa2-765c1cef5bf2",
+    "name": "Base 6",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "f4acde84-f10c-4c63-ab49-912e37def226",
+    "region_id": "1c1ff54f-fcd2-43d8-b334-630b2d1a16c2",
+    "name": "Base 7",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "a8e26dbe-ed6b-468a-b88a-d9f52b8ad743",
+    "region_id": "d3645485-f8a0-4627-b9b4-3d78b43e07a9",
+    "name": "Base 8",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "1b23e1be-49be-4bd2-ae29-feb10146efce",
+    "region_id": "35d5ed10-bad5-41bd-a747-a3491a0ad914",
+    "name": "Base 9",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "98455ad2-6217-4392-8847-9ec2998729ba",
+    "region_id": "e5c6ce3d-5b00-4180-b0e3-a4de9f2cb962",
+    "name": "Base 10",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "34324212-a434-42e7-b35b-d684830e3be6",
+    "region_id": "397bdd9b-7a01-426a-9fa2-765c1cef5bf2",
+    "name": "Base 11",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "fe2c00f2-ff31-4e53-8c62-933a65076809",
+    "region_id": "1c1ff54f-fcd2-43d8-b334-630b2d1a16c2",
+    "name": "Base 12",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "2efada11-fb18-4d38-928c-513d228cb993",
+    "region_id": "d3645485-f8a0-4627-b9b4-3d78b43e07a9",
+    "name": "Base 13",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "d13ba797-f5e5-414a-a5b4-c79c431c2cef",
+    "region_id": "35d5ed10-bad5-41bd-a747-a3491a0ad914",
+    "name": "Base 14",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  },
+  {
+    "id": "0f3df732-a0e2-4140-97eb-4bab173912bd",
+    "region_id": "e5c6ce3d-5b00-4180-b0e3-a4de9f2cb962",
+    "name": "Base 15",
+    "address": "",
+    "latitude": null,
+    "longitude": null,
+    "notes": ""
+  }
+]

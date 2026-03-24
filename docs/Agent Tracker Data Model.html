@@ -1,0 +1,847 @@
+US Army_all_states_in_one.xlsx<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Tracker — Data Model Documentation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: #ffffff;
+      line-height: 1.6;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px;
+      page-break-after: always;
+    }
+    .cover-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #e94560;
+      margin-bottom: 24px;
+    }
+    .cover h1 {
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      max-width: 700px;
+    }
+    .cover h2 {
+      font-size: 22px;
+      font-weight: 300;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 48px;
+      max-width: 660px;
+    }
+    .cover-meta {
+      border-top: 1px solid rgba(255,255,255,0.2);
+      padding-top: 32px;
+      display: flex;
+      gap: 48px;
+    }
+    .cover-meta-item label {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .cover-meta-item span {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 60px 80px;
+    }
+
+    /* ── Section headings ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #e94560;
+      margin-bottom: 10px;
+    }
+    h2.section-title {
+      font-size: 30px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+      border-bottom: 3px solid #e94560;
+      padding-bottom: 12px;
+    }
+    h3.sub-title {
+      font-size: 19px;
+      font-weight: 600;
+      color: #0f3460;
+      margin: 36px 0 12px 0;
+    }
+    h4.table-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 28px 0 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h4.table-name .badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+    .badge-core { background: #dbeafe; color: #1e40af; }
+    .badge-junction { background: #fef9c3; color: #854d0e; }
+
+    /* ── Prose ── */
+    p { margin-bottom: 14px; color: #374151; }
+    .lead {
+      font-size: 16px;
+      color: #4b5563;
+      line-height: 1.8;
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+
+    /* ── Callout boxes ── */
+    .callout {
+      border-left: 4px solid #0f3460;
+      background: #f0f4ff;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 20px 0;
+    }
+    .callout.accent { border-left-color: #e94560; background: #fff5f6; }
+    .callout.green { border-left-color: #16a34a; background: #f0fdf4; }
+    .callout.gold { border-left-color: #ca8a04; background: #fefce8; }
+    .callout strong { color: #1a1a2e; }
+
+    /* ── Tables ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 24px 0;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: #1a1a2e;
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    .data-table tr:nth-child(even) td { background: #f9fafb; }
+    .data-table tr:hover td { background: #f0f4ff; }
+    .col-name { font-weight: 600; color: #1a1a2e; font-family: 'Courier New', monospace; font-size: 12px; }
+    .col-type { color: #6366f1; font-size: 12px; font-weight: 500; }
+    .col-virtual { color: #9ca3af; font-size: 11px; font-style: italic; }
+    .col-key { color: #e94560; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── ERD diagram ── */
+    .diagram-container {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 32px;
+      margin: 24px 0;
+      overflow-x: auto;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ── Relationship cards ── */
+    .rel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0 28px 0;
+    }
+    .rel-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px 20px;
+      background: white;
+    }
+    .rel-card-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: #0f3460;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rel-card p { font-size: 12.5px; margin: 0; color: #6b7280; }
+
+    /* ── Reporting cards ── */
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .report-card {
+      background: linear-gradient(135deg, #f0f4ff, #e8ecff);
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .report-card-icon { font-size: 24px; margin-bottom: 10px; }
+    .report-card-title { font-weight: 700; font-size: 13px; color: #1e40af; margin-bottom: 8px; }
+    .report-card p { font-size: 12px; color: #4b5563; margin: 0; }
+
+    /* ── Highlight reporting cards ── */
+    .report-card.highlight {
+      background: linear-gradient(135deg, #fff7ed, #ffedd5);
+      border-color: #fb923c;
+    }
+    .report-card.highlight .report-card-title { color: #c2410c; }
+
+    /* ── Business rules ── */
+    .rule-list { list-style: none; padding: 0; margin: 12px 0; }
+    .rule-list li {
+      padding: 10px 14px 10px 44px;
+      position: relative;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 13px;
+      color: #374151;
+    }
+    .rule-list li::before {
+      content: "→";
+      position: absolute;
+      left: 16px;
+      color: #e94560;
+      font-weight: 700;
+    }
+
+    /* ── Table-of-contents ── */
+    .toc { list-style: none; padding: 0; margin: 16px 0; }
+    .toc li { padding: 7px 0; border-bottom: 1px dotted #d1d5db; display: flex; justify-content: space-between; font-size: 14px; }
+    .toc li a { color: #0f3460; text-decoration: none; font-weight: 500; }
+    .toc li a:hover { color: #e94560; }
+    .toc-num { color: #9ca3af; }
+
+    /* ── Divider ── */
+    .section-divider { border: none; border-top: 1px solid #e5e7eb; margin: 48px 0; }
+
+    /* ── Evolution banner ── */
+    .evolution-banner {
+      background: linear-gradient(90deg, #1a1a2e, #0f3460);
+      color: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      margin: 24px 0;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .evolution-banner .evo-icon { font-size: 40px; flex-shrink: 0; }
+    .evolution-banner h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .evolution-banner p { font-size: 13px; color: rgba(255,255,255,0.75); margin: 0; }
+
+    /* ── Print ── */
+    @media print {
+      .cover { min-height: auto; padding: 60px; }
+      .page { padding: 40px 60px; }
+      h2.section-title { page-break-before: always; }
+      .rel-grid { grid-template-columns: 1fr 1fr; }
+      .report-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ COVER ═══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-label">Data Architecture Documentation</div>
+  <h1>Agent Tracker<br/>Version 2.0<br/>Data Model</h1>
+  <h2>Building on a proven foundation — expanded relationships, richer reporting, and a data structure ready to grow with the program</h2>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Application</label>
+      <span>Agent Tracker</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Purpose</label>
+      <span>State Sponsored Life Insurance Program</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Version</label>
+      <span>2.0 — Evolution Release</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Date</label>
+      <span>March 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ CONTENTS ═══════════════════════════════════════════ -->
+<div class="page">
+  <div class="section-label">Navigation</div>
+  <h2 class="section-title">Table of Contents</h2>
+  <ul class="toc">
+    <li><a href="#exec-summary">1. Executive Summary</a><span class="toc-num">The story of this evolution and what it unlocks</span></li>
+    <li><a href="#erd">2. Entity Relationship Diagram</a><span class="toc-num">Visual map of all tables and connections</span></li>
+    <li><a href="#relationships">3. Relationships Explained</a><span class="toc-num">Plain-English description of how data connects</span></li>
+    <li><a href="#core-tables">4. Core Tables</a><span class="toc-num">States, Users, Contacts, Units, Briefings</span></li>
+    <li><a href="#junction-tables">5. Junction Tables</a><span class="toc-num">The connectors that enable many-to-many relationships</span></li>
+    <li><a href="#reporting">6. Reporting Capabilities</a><span class="toc-num">The powerful new questions this model can answer</span></li>
+    <li><a href="#business-rules">7. Key Business Rules</a><span class="toc-num">Calculated fields, role logic, and status automation</span></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════ EXEC SUMMARY ═══════════════════════════════════════════ -->
+<div class="page" id="exec-summary">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 1</div>
+  <h2 class="section-title">Executive Summary</h2>
+
+  <p class="lead">The Agent Tracker application organizes the teams, contacts, locations, and scheduling that support the State Sponsored Life Insurance Program (SSLI) and RGLI. This document describes Version 2.0 of the data model — an evolution of the application that expands its capabilities significantly while preserving everything that made the original work.</p>
+
+  <div class="evolution-banner">
+    <div class="evo-icon">🚀</div>
+    <div>
+      <h3>A Strong Foundation, Taken Further</h3>
+      <p>The original Agent Tracker established the core concepts that this program depends on — Briefings, Units, Contacts, and Users. Version 2.0 takes those same concepts and deepens the relationships between them, unlocking a new tier of reporting, visibility, and operational intelligence that the program is now ready to take advantage of.</p>
+    </div>
+  </div>
+
+  <h3 class="sub-title">What This Version Adds</h3>
+  <p>The Version 2.0 data model expands the application in four meaningful ways:</p>
+
+  <div class="rel-grid">
+    <div class="rel-card">
+      <div class="rel-card-title">🔗 Richer Relationships</div>
+      <p>Contacts, Units, and Briefings can now be linked to each other in true many-to-many relationships — reflecting how the real world actually works. A contact can belong to multiple units; a briefing can span multiple units; an agent can serve multiple roles.</p>
+    </div>
+    <div class="rel-card">
+      <div class="rel-card-title">🏢 Deeper Unit Intelligence</div>
+      <p>Units now carry their own briefing history — automatically tracking when they were last briefed, when the next briefing is scheduled, and whether they are current or overdue. No manual tracking required.</p>
+    </div>
+    <div class="rel-card">
+      <div class="rel-card-title">👤 Flexible User Roles</div>
+      <p>The same person can serve as an agent at one unit and a manager at another simultaneously. Role permissions are clearly defined and automatically cascaded — Directors are always Managers; Managers are always Agents.</p>
+    </div>
+    <div class="rel-card">
+      <div class="rel-card-title">📊 Reporting at Scale</div>
+      <p>Because every relationship is stored explicitly, the application can now answer multi-dimensional operational questions — filtering by agent, state, program, date range, unit status, and more — all at once.</p>
+    </div>
+  </div>
+
+  <div class="callout gold">
+    <strong>Why this matters for leadership:</strong> The Version 2.0 model was designed with reporting in mind from the ground up. Managers and directors will be able to see the full picture of program activity — which units are overdue, which agents are most productive, which states have coverage gaps — without manual spreadsheets or data exports. See Section 6 for the full list of reporting capabilities this unlocks.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ ERD ═══════════════════════════════════════════ -->
+<div class="page" id="erd">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 2</div>
+  <h2 class="section-title">Entity Relationship Diagram</h2>
+  <p class="lead">The diagram below shows every table in the Version 2.0 data model and how they connect. Lines between tables represent relationships. The notation at each end of a line shows whether the relationship is one-to-one, one-to-many, or many-to-many.</p>
+
+  <div class="callout">
+    <strong>How to read this diagram:</strong> A single vertical bar (|) means "exactly one." A circle (o) means "zero or more." A crow's foot (three lines) means "many." So <strong>||--o{</strong> means "one and only one connects to zero or many."
+  </div>
+
+  <div class="diagram-container">
+    <div class="mermaid">
+erDiagram
+    STATES {
+        text RowID PK
+        name StateName
+    }
+    USERS {
+        text UserId PK
+        text FirstName
+        text LastName
+        text DisplayName
+        email EmailAddress
+        email AltEmail
+        phone MobilePhone
+        phone LandlinePhone
+        text AddressState FK
+        text SSLIAgentNumber
+        text RGLIAgentNumber
+        boolean IsAgent
+        boolean IsManager
+        boolean IsDirector
+        boolean IsAdmin
+    }
+    CONTACTS {
+        text ContactId PK
+        text FirstName
+        text LastName
+        text RankTitle
+        text DisplayName
+        email Email
+        phone OfficePhone
+        phone WorkCell
+        phone PersonalCell
+        phone OtherPhone
+        text AltAddressState FK
+        longtext Notes
+    }
+    UNITS {
+        text UnitId PK
+        name Name
+        text AddressState FK
+        phone Phone
+        enum Branch
+        text BuildingName
+        enum Program
+        number EndStrength
+        text WingBDE
+        text GroupBN
+        date LastBriefedDate
+        date ScheduledBriefDate
+        text BriefedStatus
+    }
+    BRIEFINGS {
+        text BriefingId PK
+        text BriefTitle
+        date BriefDate
+        time StartTime
+        enum BriefStatus
+        text AssignedAgent FK
+        text AltAddressState FK
+        boolean ConfirmationObtained
+        number ExpectedPAX
+        number NumAppsObtained
+        longtext Notes
+    }
+    CONTACT_UNITS {
+        text ContactId FK
+        text UnitId FK
+    }
+    BRIEFING_UNITS {
+        text BriefingId FK
+        text UnitId FK
+    }
+    BRIEFING_CONTACTS {
+        text BriefingId FK
+        text ContactId FK
+    }
+    UNIT_AGENTS {
+        text UnitId FK
+        text UserId FK
+    }
+    UNIT_MANAGERS {
+        text UnitId FK
+        text UserId FK
+    }
+    USER_STATE_LICENSES {
+        text UserId FK
+        text StateId FK
+    }
+
+    STATES ||--o{ UNITS : "located in"
+    STATES ||--o{ CONTACTS : "alt address"
+    STATES ||--o{ BRIEFINGS : "alt address"
+    STATES ||--o{ USERS : "home address"
+    STATES ||--o{ USER_STATE_LICENSES : "licensed in"
+    USERS ||--o{ USER_STATE_LICENSES : "holds license"
+    USERS ||--o{ BRIEFINGS : "assigned agent"
+    CONTACTS ||--o{ CONTACT_UNITS : ""
+    UNITS ||--o{ CONTACT_UNITS : ""
+    BRIEFINGS ||--o{ BRIEFING_UNITS : ""
+    UNITS ||--o{ BRIEFING_UNITS : ""
+    BRIEFINGS ||--o{ BRIEFING_CONTACTS : ""
+    CONTACTS ||--o{ BRIEFING_CONTACTS : ""
+    UNITS ||--o{ UNIT_AGENTS : ""
+    USERS ||--o{ UNIT_AGENTS : ""
+    UNITS ||--o{ UNIT_MANAGERS : ""
+    USERS ||--o{ UNIT_MANAGERS : ""
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Junction tables</strong> (CONTACT_UNITS, BRIEFING_UNITS, BRIEFING_CONTACTS, UNIT_AGENTS, UNIT_MANAGERS, USER_STATE_LICENSES) are the connectors that make many-to-many relationships possible — for example, allowing one contact to be linked to multiple units, and one unit to have multiple contacts over time. This pattern is a hallmark of a mature, scalable data model.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ RELATIONSHIPS ═══════════════════════════════════════════ -->
+<div class="page" id="relationships">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 3</div>
+  <h2 class="section-title">Relationships Explained</h2>
+  <p class="lead">Every line in the diagram above represents a real-world relationship that the application tracks. Here is what each one means in plain terms — and why it matters operationally.</p>
+
+  <h3 class="sub-title">Contacts ↔ Units</h3>
+  <p>A military contact can be associated with more than one unit — for example, a service member who transfers or holds a role that spans installations. Conversely, a unit will have many contacts over time. The <strong>ContactUnits</strong> table stores every pairing, giving agents a complete picture of who they know at each location.</p>
+  <div class="callout">A contact's primary address comes from their unit. If a contact is not tied to a unit, they can have their own alternate address stored directly on their record — ensuring no one falls through the cracks.</div>
+
+  <h3 class="sub-title">Briefings ↔ Units</h3>
+  <p>A briefing is associated with the unit(s) where it takes place. The <strong>BriefingUnits</strong> table records which units are connected to each briefing, and the unit's program designation (SSLI or RGLI) flows through to the briefing automatically — eliminating the need for redundant data entry and the errors that come with it.</p>
+
+  <h3 class="sub-title">Briefings ↔ Contacts</h3>
+  <p>A briefing can involve many contacts (everyone in the room), and a contact can attend many briefings throughout their career. The <strong>BriefingContacts</strong> table preserves the full attendance record for every briefing, creating a permanent, queryable history of engagement that grows more valuable over time.</p>
+
+  <h3 class="sub-title">Units ↔ Users (Agents)</h3>
+  <p>An agent can be assigned to cover more than one unit, and a unit can have more than one agent working it. The <strong>UnitAgents</strong> table stores these assignments, making it easy to see exactly who is responsible for each unit and which units each agent is covering.</p>
+
+  <h3 class="sub-title">Units ↔ Users (Managers)</h3>
+  <p>Separately from agent assignments, managers are linked to the units they oversee through the <strong>UnitManagers</strong> table. Critically, the same user can appear as an agent at one unit and as a manager at another — this design supports the real-world complexity of how your team operates.</p>
+
+  <h3 class="sub-title">Users ↔ States (Licenses)</h3>
+  <p>Agents are licensed to operate in specific states. The <strong>UserStateLicenses</strong> table records every state in which each agent holds a license. This makes it straightforward to match agents to units, verify coverage, and ensure compliance — all from within the app.</p>
+
+  <h3 class="sub-title">States (Reference Table)</h3>
+  <p>The States table is a shared reference list of all 50 US states used as a consistent, controlled dropdown wherever a state field appears — in unit addresses, contact addresses, briefing locations, user home addresses, and license records. This single reference ensures that "Texas" is always "Texas" across every table, making state-level filtering and reporting perfectly reliable.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════ CORE TABLES ═══════════════════════════════════════════ -->
+<div class="page" id="core-tables">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 4</div>
+  <h2 class="section-title">Core Tables</h2>
+  <p class="lead">The five core tables store the primary data of the application. Each table is described below with its columns, data types, and purpose.</p>
+
+  <!-- STATES -->
+  <h4 class="table-name">States <span class="badge badge-core">Core</span></h4>
+  <p>A shared reference list of all 50 US states. Used as a controlled dropdown throughout the app to ensure consistent data entry and enable reliable filtering and reporting by state across every table.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">Row ID</td><td class="col-type">Text</td><td><span class="col-key">Primary Key</span> — auto-generated unique ID</td></tr>
+      <tr><td class="col-name">State Name</td><td class="col-type">Name</td><td>Full state name (e.g., "Texas") — the label displayed throughout the app</td></tr>
+    </tbody>
+  </table>
+
+  <!-- USERS -->
+  <h4 class="table-name">Users <span class="badge badge-core">Core</span></h4>
+  <p>Every person who uses the application — agents, managers, directors, and admins. Role flags determine what each user can see and do. The role hierarchy is automatic: Directors are always Managers; all users are always Agents.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">UserId</td><td class="col-type">Text</td><td><span class="col-key">Primary Key</span></td></tr>
+      <tr><td class="col-name">First Name</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Last Name</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">DisplayName</td><td class="col-type">Text</td><td><span class="col-virtual">Virtual — calculated from First + Last Name</span></td></tr>
+      <tr><td class="col-name">Email Address</td><td class="col-type">Email</td><td>Primary login address for the application</td></tr>
+      <tr><td class="col-name">Alternate Email</td><td class="col-type">Email</td><td></td></tr>
+      <tr><td class="col-name">Mobile Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Landline Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Address Street</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Address City</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Address State</td><td class="col-type">Ref → States</td><td></td></tr>
+      <tr><td class="col-name">Address ZIP</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">SSLI Agent Number</td><td class="col-type">Text</td><td>Agent's SSLI program identifier</td></tr>
+      <tr><td class="col-name">RGLI Agent Number</td><td class="col-type">Text</td><td>Agent's RGLI program identifier</td></tr>
+      <tr><td class="col-name">IsAgent</td><td class="col-type">Yes/No</td><td><span class="col-virtual">Virtual — always TRUE (all users are agents)</span></td></tr>
+      <tr><td class="col-name">IsManager</td><td class="col-type">Yes/No</td><td><span class="col-virtual">Virtual — auto TRUE if IsDirector = TRUE</span></td></tr>
+      <tr><td class="col-name">IsDirector</td><td class="col-type">Yes/No</td><td>Manual flag</td></tr>
+      <tr><td class="col-name">IsAdmin</td><td class="col-type">Yes/No</td><td>Manual flag — independent of other roles</td></tr>
+    </tbody>
+  </table>
+
+  <!-- CONTACTS -->
+  <h4 class="table-name">Contacts <span class="badge badge-core">Core</span></h4>
+  <p>The military personnel that agents build relationships with. Contacts are linked to units (and inherit the unit's address), can attend multiple briefings over time, and carry four phone number fields to ensure agents always have the right number at hand. Contacts exist independently of any specific agent, meaning their history persists even when agent assignments change.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">ContactId</td><td class="col-type">Text</td><td><span class="col-key">Primary Key</span></td></tr>
+      <tr><td class="col-name">First Name</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Last Name</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Rank/Title</td><td class="col-type">Text</td><td>Military rank or civilian title</td></tr>
+      <tr><td class="col-name">DisplayName</td><td class="col-type">Text</td><td><span class="col-virtual">Virtual — calculated from Rank/Title + First + Last Name</span></td></tr>
+      <tr><td class="col-name">Email</td><td class="col-type">Email</td><td></td></tr>
+      <tr><td class="col-name">Office Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Work Cell</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Personal Cell</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Other Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Notes</td><td class="col-type">LongText</td><td>Free-text notes, multi-sentence</td></tr>
+      <tr><td class="col-name">AltAddress Street</td><td class="col-type">Text</td><td rowspan="4">Used when a contact has no unit association, or has a distinct personal address</td></tr>
+      <tr><td class="col-name">AltAddress City</td><td class="col-type">Text</td></tr>
+      <tr><td class="col-name">AltAddress State</td><td class="col-type">Ref → States</td></tr>
+      <tr><td class="col-name">AltAddress ZIP</td><td class="col-type">Text</td></tr>
+    </tbody>
+  </table>
+
+  <!-- UNITS -->
+  <h4 class="table-name">Units <span class="badge badge-core">Core</span></h4>
+  <p>The military installations, armories, and bases that agents serve. In Version 2.0, the Unit record becomes significantly more intelligent — it automatically surfaces its own briefing history, flags its current status, and carries its program designation so that every briefing and contact connected to it inherits the right context automatically.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">UnitId</td><td class="col-type">Text</td><td><span class="col-key">Primary Key</span></td></tr>
+      <tr><td class="col-name">Name</td><td class="col-type">Name</td><td>Official unit name — serves as the display label throughout the app</td></tr>
+      <tr><td class="col-name">Address Street</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Address City</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Address State</td><td class="col-type">Ref → States</td><td></td></tr>
+      <tr><td class="col-name">Address ZIP</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Phone Ext</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">Additional Phone</td><td class="col-type">Phone</td><td></td></tr>
+      <tr><td class="col-name">Notes</td><td class="col-type">LongText</td><td></td></tr>
+      <tr><td class="col-name">Branch</td><td class="col-type">Enum</td><td>Army, Air Force, Army Guard, Air Guard, Navy, Marines, Coast Guard, Space Force</td></tr>
+      <tr><td class="col-name">Building Name</td><td class="col-type">Text</td><td>Armory or base facility name</td></tr>
+      <tr><td class="col-name">Program</td><td class="col-type">Enum</td><td>SSLI or RGLI — Briefings connected to this unit inherit this value automatically</td></tr>
+      <tr><td class="col-name">End-Strength</td><td class="col-type">Number</td><td>Personnel count for the unit</td></tr>
+      <tr><td class="col-name">Wing-BDE</td><td class="col-type">Text</td><td>Military organizational hierarchy — Wing or Brigade</td></tr>
+      <tr><td class="col-name">Group-BN</td><td class="col-type">Text</td><td>Military organizational hierarchy — Group or Battalion</td></tr>
+      <tr><td class="col-name">LastBriefedDate</td><td class="col-type">Date</td><td><span class="col-virtual">Virtual — automatically calculated from the most recent completed briefing</span></td></tr>
+      <tr><td class="col-name">ScheduledBriefDate</td><td class="col-type">Date</td><td><span class="col-virtual">Virtual — automatically populated from the next upcoming scheduled briefing</span></td></tr>
+      <tr><td class="col-name">BriefedStatus</td><td class="col-type">Text</td><td><span class="col-virtual">Virtual — Overdue / Need Scheduling / Is Current / Never Briefed (calculated automatically)</span></td></tr>
+    </tbody>
+  </table>
+
+  <!-- BRIEFINGS -->
+  <h4 class="table-name">Briefings <span class="badge badge-core">Core</span></h4>
+  <p>A scheduled or completed briefing event. Each briefing is owned by an agent, connected to one or more units, and includes a full contact list. Program information (SSLI/RGLI) is inherited from the associated unit — keeping data consistent without extra effort from the agent.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">BriefingId</td><td class="col-type">Text</td><td><span class="col-key">Primary Key</span></td></tr>
+      <tr><td class="col-name">BriefTitle</td><td class="col-type">Text</td><td></td></tr>
+      <tr><td class="col-name">BriefDate</td><td class="col-type">Date</td><td>Scheduled or completed date</td></tr>
+      <tr><td class="col-name">Start Time</td><td class="col-type">Time</td><td>Stored separately from date for maximum scheduling flexibility</td></tr>
+      <tr><td class="col-name">BriefStatus</td><td class="col-type">Enum</td><td>Scheduled, Completed, Cancelled</td></tr>
+      <tr><td class="col-name">Assigned Agent</td><td class="col-type">Ref → Users</td><td>The agent responsible for conducting this briefing</td></tr>
+      <tr><td class="col-name">AltAddress Street</td><td class="col-type">Text</td><td rowspan="4">Used when the briefing is held at a location other than the unit's primary address</td></tr>
+      <tr><td class="col-name">AltAddress City</td><td class="col-type">Text</td></tr>
+      <tr><td class="col-name">AltAddress State</td><td class="col-type">Ref → States</td></tr>
+      <tr><td class="col-name">AltAddress ZIP</td><td class="col-type">Text</td></tr>
+      <tr><td class="col-name">ConfirmationObtained</td><td class="col-type">Yes/No</td><td>Has the briefing been confirmed with the unit point of contact?</td></tr>
+      <tr><td class="col-name">Expected PAX</td><td class="col-type">Number</td><td>Expected personnel attendance count</td></tr>
+      <tr><td class="col-name">Number Apps Obtained</td><td class="col-type">Number</td><td>Insurance applications collected at the briefing — a key productivity metric</td></tr>
+      <tr><td class="col-name">Notes</td><td class="col-type">LongText</td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════ JUNCTION TABLES ═══════════════════════════════════════════ -->
+<div class="page" id="junction-tables">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 5</div>
+  <h2 class="section-title">Junction Tables</h2>
+  <p class="lead">Junction tables are what make many-to-many relationships possible. Each one exists to represent a connection that neither side can fully describe on its own — for example, an agent covering multiple units, or a contact attending multiple briefings. These tables are what give Version 2.0 its reporting depth.</p>
+
+  <div class="callout accent">
+    <strong>Why junction tables are so powerful for reporting:</strong> Because every relationship is stored as an explicit record, the application can answer precise operational questions — "which agents cover units in Virginia?", "which contacts attended the most briefings last year?", "which units have no agent assigned?" — instantly, without any manual data compilation.
+  </div>
+
+  <h4 class="table-name">ContactUnits <span class="badge badge-junction">Junction</span></h4>
+  <p>Links contacts to the units they are associated with. One contact can be connected to many units; one unit can have many contacts. This table is the foundation for contact-level reporting across locations.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">ContactId</td><td class="col-type">Ref → Contacts</td><td></td></tr>
+      <tr><td class="col-name">UnitId</td><td class="col-type">Ref → Units</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="table-name">BriefingUnits <span class="badge badge-junction">Junction</span></h4>
+  <p>Links briefings to the units they are associated with. One briefing can span multiple units; one unit accumulates a rich briefing history over time. Program and branch data roll up through this table automatically.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">BriefingId</td><td class="col-type">Ref → Briefings</td><td></td></tr>
+      <tr><td class="col-name">UnitId</td><td class="col-type">Ref → Units</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="table-name">BriefingContacts <span class="badge badge-junction">Junction</span></h4>
+  <p>The attendance record — which contacts were present at which briefings. Every entry here is a permanent piece of relationship history that can be queried, filtered, and reported on for years to come.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">BriefingId</td><td class="col-type">Ref → Briefings</td><td></td></tr>
+      <tr><td class="col-name">ContactId</td><td class="col-type">Ref → Contacts</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="table-name">UnitAgents <span class="badge badge-junction">Junction</span></h4>
+  <p>Records which agents are assigned to cover which units. Enables full visibility into coverage — who is responsible for each unit, and how many units each agent carries.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">UnitId</td><td class="col-type">Ref → Units</td><td></td></tr>
+      <tr><td class="col-name">UserId</td><td class="col-type">Ref → Users</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="table-name">UnitManagers <span class="badge badge-junction">Junction</span></h4>
+  <p>Records which managers oversee which units. Kept intentionally separate from UnitAgents so that a user can serve as an agent at one unit and a manager at another at the same time — reflecting how teams actually operate in the field.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">UnitId</td><td class="col-type">Ref → Units</td><td></td></tr>
+      <tr><td class="col-name">UserId</td><td class="col-type">Ref → Users</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="table-name">UserStateLicenses <span class="badge badge-junction">Junction</span></h4>
+  <p>Tracks the states in which each agent holds an active license. Supports compliance, coverage analysis, and smart assignment recommendations — ensuring agents are always matched to units where they are authorized to operate.</p>
+  <table class="data-table">
+    <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="col-name">UserId</td><td class="col-type">Ref → Users</td><td></td></tr>
+      <tr><td class="col-name">StateId</td><td class="col-type">Ref → States</td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════ REPORTING ═══════════════════════════════════════════ -->
+<div class="page" id="reporting">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 6</div>
+  <h2 class="section-title">Reporting Capabilities</h2>
+  <p class="lead">This is where the Version 2.0 data model truly shines. Because every relationship between agents, units, contacts, and briefings is now stored as a distinct, queryable record, the application can answer operational questions at a depth and speed that simply was not possible before — without spreadsheets, without manual data pulls, and without waiting.</p>
+
+  <div class="callout gold">
+    <strong>The compounding effect of connected data:</strong> Each of the reports below is powerful on its own. What makes this model exceptional is that they can all be combined and cross-filtered simultaneously. "Show me all units in Texas assigned to Agent Smith that are overdue, and list the key contacts at each one" — that query spans five tables and returns in seconds because of how this model is structured.
+  </div>
+
+  <div class="report-grid">
+    <div class="report-card highlight">
+      <div class="report-card-icon">⚠️</div>
+      <div class="report-card-title">Unit Health at a Glance</div>
+      <p>Every unit in the system displays its current status automatically — Overdue, Need Scheduling, Is Current, or Never Briefed. No manual tracking. Always up to date. Filter by state, branch, program, or manager in seconds.</p>
+    </div>
+    <div class="report-card highlight">
+      <div class="report-card-icon">📊</div>
+      <div class="report-card-title">Agent Productivity Dashboard</div>
+      <p>How many briefings has each agent completed this quarter? How many applications obtained? Which of their units are falling behind? All visible in one place, per agent, without any manual compilation.</p>
+    </div>
+    <div class="report-card highlight">
+      <div class="report-card-icon">📈</div>
+      <div class="report-card-title">Applications by Program</div>
+      <p>Total applications obtained for SSLI vs. RGLI — by agent, by state, by time period, by branch of service. Because Program lives on the Unit and flows to every Briefing, this report is always accurate.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">📅</div>
+      <div class="report-card-title">Scheduling Pipeline</div>
+      <p>Which units have a briefing coming up? Which have nothing scheduled and are approaching the overdue threshold? Proactive scheduling visibility, built in.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">🗺️</div>
+      <div class="report-card-title">Geographic Coverage Analysis</div>
+      <p>Which states have the most active units? Which agents are licensed in those states? Where are the coverage gaps? Program leadership can see the full national picture at any time.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">🤝</div>
+      <div class="report-card-title">Contact Engagement History</div>
+      <p>Which contacts have attended briefings in the past year? Which key contacts at a given unit have never been to one? Relationship depth is now measurable and trackable.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">🏗️</div>
+      <div class="report-card-title">Manager Oversight &amp; Roll-Up</div>
+      <p>Every manager can see the units they oversee and the agents under them. Directors get a rolled-up view across all managers. The hierarchy is automatic — no manual aggregation needed.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">✅</div>
+      <div class="report-card-title">Compliance &amp; Licensing</div>
+      <p>With state licenses stored per agent, the app can flag any situation where an agent is assigned to a unit in a state where they are not yet licensed. Auditable, proactive, and automatic.</p>
+    </div>
+    <div class="report-card">
+      <div class="report-card-icon">📉</div>
+      <div class="report-card-title">Trend Analysis Over Time</div>
+      <p>Because every briefing and every contact attendance is a permanent record, trend analysis across any time period is always available — month over month, quarter over quarter, year over year.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ BUSINESS RULES ═══════════════════════════════════════════ -->
+<div class="page" id="business-rules">
+  <hr class="section-divider" style="margin-top:0"/>
+  <div class="section-label">Section 7</div>
+  <h2 class="section-title">Key Business Rules</h2>
+  <p class="lead">Several fields in the application calculate their values automatically based on the data already in the system. This section documents those rules clearly so every stakeholder understands how the app reaches its conclusions.</p>
+
+  <h3 class="sub-title">User Role Transitivity</h3>
+  <p>Roles follow a clean hierarchy that cascades automatically when a higher role is assigned:</p>
+  <ul class="rule-list">
+    <li>All users are Agents. <strong>IsAgent is always TRUE</strong> — no manual entry needed.</li>
+    <li>If IsDirector = TRUE, then <strong>IsManager is automatically TRUE.</strong></li>
+    <li>IsAdmin is independent — it grants system administration access and can be combined with any other role.</li>
+    <li>A user can serve as an Agent at one unit and a Manager at a different unit at the same time. These are tracked as separate, clean records in UnitAgents and UnitManagers.</li>
+  </ul>
+
+  <h3 class="sub-title">Unit Briefed Status (Automatic)</h3>
+  <p>Each unit's briefing status is calculated automatically — no one has to update it manually. The logic is:</p>
+  <table class="data-table">
+    <thead><tr><th>Status</th><th>Condition</th><th>What It Means</th></tr></thead>
+    <tbody>
+      <tr><td><strong style="color:#16a34a">Is Current</strong></td><td>1 to 12 months since last brief</td><td>Unit has been briefed within the past year — in good standing</td></tr>
+      <tr><td><strong style="color:#ca8a04">Need Scheduling</strong></td><td>12 to 18 months since last brief</td><td>Approaching the threshold — should be scheduled soon</td></tr>
+      <tr><td><strong style="color:#dc2626">Overdue</strong></td><td>More than 18 months since last brief</td><td>Past the required window — needs immediate attention</td></tr>
+      <tr><td><strong style="color:#6b7280">Never Briefed</strong></td><td>No LastBriefedDate on record</td><td>Unit has no briefing history — a priority for initial outreach</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">LastBriefedDate and ScheduledBriefDate</h3>
+  <ul class="rule-list">
+    <li><strong>ScheduledBriefDate</strong> on a unit is drawn automatically from any linked Briefing with a future date and a status of "Scheduled."</li>
+    <li>When a ScheduledBriefDate passes, it automatically becomes the <strong>LastBriefedDate</strong> and ScheduledBriefDate clears — ready for the next briefing to be entered.</li>
+    <li>Both fields are virtual and calculated — agents never have to update them manually.</li>
+  </ul>
+
+  <h3 class="sub-title">Program Inheritance</h3>
+  <ul class="rule-list">
+    <li>Program (SSLI or RGLI) is set once at the <strong>Unit</strong> level.</li>
+    <li>Every Briefing connected to that unit inherits its Program automatically via the BriefingUnits relationship.</li>
+    <li>This eliminates duplicate entry and ensures that all program-level reporting is always consistent with the unit's classification.</li>
+  </ul>
+
+  <h3 class="sub-title">Contact Address Logic</h3>
+  <ul class="rule-list">
+    <li>A contact's address is drawn from the unit(s) they are linked to via ContactUnits — no separate entry needed in the common case.</li>
+    <li>If a contact has no unit association, or has a personally different address, the AltAddress fields on the Contact record are used instead.</li>
+    <li>The same AltAddress pattern applies to Briefings held at a location other than the unit's primary address.</li>
+  </ul>
+
+  <hr class="section-divider"/>
+  <div class="callout green">
+    <strong>Document prepared during the Version 2.0 design process, March 2026.</strong> This document reflects the collaborative design decisions made during the rewrite planning phase and serves as the reference specification for the Version 2.0 build. Junction table structures will be fully implemented and configured during the AppSheet build phase.
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    er: { diagramPadding: 30, layoutDirection: 'TB', minEntityWidth: 100, minEntityHeight: 75, entityPadding: 15, useMaxWidth: true }
+  });
+</script>
+</body>
+</html>
