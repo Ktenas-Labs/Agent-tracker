@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../app/theme.dart';
 import '../core/firebase_state.dart';
+import '../core/user_state.dart';
 import 'google_cloud_sign_in.dart' as gcp;
 
 final api = ApiService();
@@ -11,7 +14,7 @@ class ApiService {
   final Dio _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000/api/v1'));
   String? _token;
 
-  Future<void> signInWithGoogleCloud() async {
+  Future<Map<String, dynamic>> signInWithGoogleCloud() async {
     final user = await gcp.signInWithGoogleCloud();
     if (user == null) {
       throw StateError('Sign-in cancelled');
@@ -25,9 +28,10 @@ class ApiService {
     if (_token != null) {
       _dio.options.headers['Authorization'] = 'Bearer $_token';
     }
+    return Map<String, dynamic>.from(resp.data as Map);
   }
 
-  Future<void> mockLogin() async {
+  Future<Map<String, dynamic>> mockLogin() async {
     final resp = await _dio.post('/auth/mock-login', data: {
       'email': 'agent@example.com',
       'first_name': 'Field',
@@ -38,6 +42,12 @@ class ApiService {
     if (_token != null) {
       _dio.options.headers['Authorization'] = 'Bearer $_token';
     }
+    return Map<String, dynamic>.from(resp.data as Map);
+  }
+
+  void clearToken() {
+    _token = null;
+    _dio.options.headers.remove('Authorization');
   }
 
   Future<List<dynamic>> getList(String path) async {
@@ -55,11 +65,22 @@ class ApiService {
   }
 }
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
+  void _applyUser(WidgetRef ref, Map<String, dynamic> data) {
+    final u = data['user'] as Map<String, dynamic>? ?? {};
+    ref.read(userProfileProvider.notifier).setUser(UserProfile(
+          id: u['id'] as String? ?? '',
+          email: u['email'] as String? ?? '',
+          firstName: u['first_name'] as String? ?? 'Field',
+          lastName: u['last_name'] as String? ?? 'Agent',
+          role: u['role'] as String? ?? 'agent',
+        ));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Center(
         child: SizedBox(
@@ -78,7 +99,8 @@ class LoginScreen extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () async {
                         try {
-                          await api.signInWithGoogleCloud();
+                          final data = await api.signInWithGoogleCloud();
+                          _applyUser(ref, data);
                           if (context.mounted) context.go('/dashboard');
                         } catch (e) {
                           if (context.mounted) {
@@ -94,8 +116,17 @@ class LoginScreen extends StatelessWidget {
                   ],
                   ElevatedButton(
                     onPressed: () async {
-                      await api.mockLogin();
-                      if (context.mounted) context.go('/dashboard');
+                      try {
+                        final data = await api.mockLogin();
+                        _applyUser(ref, data);
+                        if (context.mounted) context.go('/dashboard');
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Mock sign-in failed: $e')),
+                          );
+                        }
+                      }
                     },
                     child: const Text('Sign in (Mock / dev)'),
                   ),
@@ -114,34 +145,13 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
-      ('Regions', '/regions'),
-      ('Bases', '/bases'),
-      ('Reserve Units', '/units'),
-      ('Conversations', '/conversations'),
-      ('Briefs', '/briefs'),
-      ('Calendar', '/calendar'),
-      ('Map/Nearby', '/maps'),
-      ('Performance', '/performance'),
-      ('Reports', '/reports'),
-      ('Admin', '/admin'),
-      ('Settings', '/settings'),
-    ];
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
-      body: GridView.count(
-        padding: const EdgeInsets.all(16),
-        crossAxisCount: 3,
-        childAspectRatio: 3,
-        children: [
-          for (final item in items)
-            Card(
-              child: InkWell(
-                onTap: () => context.go(item.$2),
-                child: Center(child: Text(item.$1)),
-              ),
-            ),
-        ],
+      body: const Center(
+        child: Text(
+          'Customizable widgets coming soon.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
       ),
     );
   }
@@ -160,63 +170,8 @@ class PlaceholderScreen extends StatelessWidget {
   }
 }
 
-class RegionsScreen extends StatefulWidget {
-  const RegionsScreen({super.key});
-  @override
-  State<RegionsScreen> createState() => _RegionsScreenState();
-}
 
-class _RegionsScreenState extends State<RegionsScreen> {
-  late Future<List<dynamic>> future = api.getList('/regions');
-  final nameCtrl = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return CrudScaffold(
-      title: 'Regions',
-      onAdd: () async {
-        await api.post('/regions', {'name': nameCtrl.text, 'notes': ''});
-        nameCtrl.clear();
-        setState(() => future = api.getList('/regions'));
-      },
-      inputHint: 'Region name',
-      inputController: nameCtrl,
-      future: future,
-      itemBuilder: (item) => ListTile(title: Text(item['name'] ?? ''), subtitle: Text(item['id'] ?? '')),
-    );
-  }
-}
-
-class BasesScreen extends StatefulWidget {
-  const BasesScreen({super.key});
-  @override
-  State<BasesScreen> createState() => _BasesScreenState();
-}
-
-class _BasesScreenState extends State<BasesScreen> {
-  late Future<List<dynamic>> future = api.getList('/bases');
-  final nameCtrl = TextEditingController();
-  final regionIdCtrl = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return CrudScaffold(
-      title: 'Bases',
-      onAdd: () async {
-        await api.post('/bases', {'name': nameCtrl.text, 'region_id': regionIdCtrl.text, 'address': ''});
-        setState(() => future = api.getList('/bases'));
-      },
-      inputHint: 'Base name',
-      inputController: nameCtrl,
-      extra: TextField(controller: regionIdCtrl, decoration: const InputDecoration(labelText: 'Region ID')),
-      future: future,
-      itemBuilder: (item) => ListTile(
-        title: Text(item['name'] ?? ''),
-        subtitle: Text('region: ${item['region_id'] ?? ''}'),
-      ),
-    );
-  }
-}
+// BasesScreen lives in bases_screen.dart
 
 class UnitsScreen extends StatefulWidget {
   const UnitsScreen({super.key});
@@ -290,93 +245,12 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 }
 
-class BriefsScreen extends StatefulWidget {
-  const BriefsScreen({super.key});
-  @override
-  State<BriefsScreen> createState() => _BriefsScreenState();
-}
-
-class _BriefsScreenState extends State<BriefsScreen> {
-  late Future<List<dynamic>> future = api.getList('/briefs');
-  final unitIdCtrl = TextEditingController();
-  final baseIdCtrl = TextEditingController();
-  final regionIdCtrl = TextEditingController();
-  final agentIdCtrl = TextEditingController();
-  final locationCtrl = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return CrudScaffold(
-      title: 'Brief Scheduling',
-      onAdd: () async {
-        await api.post('/briefs', {
-          'reserve_unit_id': unitIdCtrl.text,
-          'base_id': baseIdCtrl.text,
-          'region_id': regionIdCtrl.text,
-          'assigned_agent_id': agentIdCtrl.text,
-          'scheduled_at': DateTime.now().toUtc().toIso8601String(),
-          'location': locationCtrl.text,
-        });
-        setState(() => future = api.getList('/briefs'));
-      },
-      inputHint: 'Location',
-      inputController: locationCtrl,
-      extra: Column(
-        children: [
-          TextField(controller: unitIdCtrl, decoration: const InputDecoration(labelText: 'Unit ID')),
-          const SizedBox(height: 8),
-          TextField(controller: baseIdCtrl, decoration: const InputDecoration(labelText: 'Base ID')),
-          const SizedBox(height: 8),
-          TextField(controller: regionIdCtrl, decoration: const InputDecoration(labelText: 'Region ID')),
-          const SizedBox(height: 8),
-          TextField(controller: agentIdCtrl, decoration: const InputDecoration(labelText: 'Agent ID')),
-        ],
-      ),
-      future: future,
-      itemBuilder: (item) => ListTile(
-        title: Text(item['location'] ?? ''),
-        subtitle: Text('status: ${item['status'] ?? ''}'),
-      ),
-    );
-  }
-}
+// BriefsScreen lives in briefs_screen.dart
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
   @override
   Widget build(BuildContext context) => const PlaceholderScreen(title: 'Calendar (events + training weekends)');
-}
-
-class MapsScreen extends StatefulWidget {
-  const MapsScreen({super.key});
-  @override
-  State<MapsScreen> createState() => _MapsScreenState();
-}
-
-class _MapsScreenState extends State<MapsScreen> {
-  late Future<Map<String, dynamic>> report = api.getReport('/maps/weekend-opportunities');
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Map / Nearby Bases')),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: report,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final ops = (snapshot.data!['opportunities'] as List<dynamic>? ?? []);
-          return ListView(
-            children: [
-              for (final op in ops)
-                ListTile(
-                  title: Text('${op['base_a']} ↔ ${op['base_b']}'),
-                  subtitle: Text('${op['miles']} miles'),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
 }
 
 class PerformanceScreen extends StatelessWidget {
@@ -445,6 +319,335 @@ class SummaryCard extends StatelessWidget {
     );
   }
 }
+
+// ── Admin Settings ─────────────────────────────────────────────────────────────
+
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProfileProvider);
+
+    if (user == null || !user.isAdmin) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Settings')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: AppColors.textDisabled),
+              const SizedBox(height: 16),
+              const Text('Admin access required', style: TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+              const SizedBox(height: 8),
+              const Text('Only administrators can manage regions and bases.',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Settings'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.map_outlined), text: 'Regions'),
+              Tab(icon: Icon(Icons.location_city_outlined), text: 'Bases'),
+            ],
+          ),
+        ),
+        body: const TabBarView(
+          children: [
+            _RegionsTab(),
+            _BasesTab(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RegionsTab extends StatefulWidget {
+  const _RegionsTab();
+
+  @override
+  State<_RegionsTab> createState() => _RegionsTabState();
+}
+
+class _RegionsTabState extends State<_RegionsTab> {
+  late Future<List<dynamic>> _regions = api.getList('/regions');
+  final _nameCtrl = TextEditingController();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await api.post('/regions', {'name': name, 'notes': ''});
+      _nameCtrl.clear();
+      setState(() => _regions = api.getList('/regions'));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add region: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'New region name',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onSubmitted: (_) => _add(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.icon(
+                onPressed: _saving ? null : _add,
+                icon: _saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.add),
+                label: const Text('Add Region'),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: FutureBuilder<List<dynamic>>(
+            future: _regions,
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snap.hasError) {
+                return Center(child: Text('Error: ${snap.error}', style: const TextStyle(color: AppColors.error)));
+              }
+              final list = snap.data ?? [];
+              if (list.isEmpty) {
+                return const Center(child: Text('No regions', style: TextStyle(color: AppColors.textSecondary)));
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
+                itemBuilder: (context, i) {
+                  final r = list[i];
+                  final states = (r['states'] as List<dynamic>? ?? []).cast<String>();
+                  return ListTile(
+                    leading: const Icon(Icons.map_outlined, color: AppColors.primary),
+                    title: Text(r['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: states.isNotEmpty
+                        ? Text(states.join(' · '), style: const TextStyle(fontSize: 12),
+                            maxLines: 2, overflow: TextOverflow.ellipsis)
+                        : null,
+                    trailing: r['notes'] != null && (r['notes'] as String).isNotEmpty
+                        ? Chip(label: Text(r['notes'] as String, style: const TextStyle(fontSize: 11)))
+                        : null,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BasesTab extends StatefulWidget {
+  const _BasesTab();
+
+  @override
+  State<_BasesTab> createState() => _BasesTabState();
+}
+
+class _BasesTabState extends State<_BasesTab> {
+  late Future<List<dynamic>> _bases = api.getList('/bases');
+  late Future<List<dynamic>> _regions = api.getList('/regions');
+  final _nameCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  String? _selectedRegionId;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty || _selectedRegionId == null) return;
+    setState(() => _saving = true);
+    try {
+      await api.post('/bases', {
+        'name': name,
+        'region_id': _selectedRegionId,
+        'address': _addressCtrl.text.trim(),
+      });
+      _nameCtrl.clear();
+      _addressCtrl.clear();
+      setState(() {
+        _selectedRegionId = null;
+        _bases = api.getList('/bases');
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add base: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: _regions,
+      builder: (context, regionsSnap) {
+        final regions = regionsSnap.data ?? [];
+        final regionNames = {for (final r in regions) r['id'] as String: r['name'] as String? ?? r['id'] as String};
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _nameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Base name',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _addressCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Address (optional)',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedRegionId,
+                          decoration: const InputDecoration(
+                            labelText: 'Region',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: [
+                            for (final r in regions)
+                              DropdownMenuItem<String>(
+                                value: r['id'] as String,
+                                child: Text(r['name'] as String? ?? r['id'] as String),
+                              ),
+                          ],
+                          onChanged: (v) => setState(() => _selectedRegionId = v),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        onPressed: (_saving || _selectedRegionId == null) ? null : _add,
+                        icon: _saving
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.add),
+                        label: const Text('Add Base'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: FutureBuilder<List<dynamic>>(
+                future: _bases,
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snap.hasError) {
+                    return Center(
+                        child: Text('Error: ${snap.error}', style: const TextStyle(color: AppColors.error)));
+                  }
+                  final list = snap.data ?? [];
+                  if (list.isEmpty) {
+                    return const Center(
+                        child: Text('No bases', style: TextStyle(color: AppColors.textSecondary)));
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 56),
+                    itemBuilder: (context, i) {
+                      final b = list[i];
+                      final regionName = regionNames[b['region_id']] ?? b['region_id'] ?? '—';
+                      return ListTile(
+                        leading: const Icon(Icons.location_city_outlined, color: AppColors.primary),
+                        title: Text(b['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(regionName, style: const TextStyle(color: AppColors.textSecondary)),
+                        trailing: b['address'] != null && (b['address'] as String).isNotEmpty
+                            ? Text(b['address'] as String,
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))
+                            : null,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Shared scaffold ────────────────────────────────────────────────────────────
 
 class CrudScaffold extends StatelessWidget {
   const CrudScaffold({

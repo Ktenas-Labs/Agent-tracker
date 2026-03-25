@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import String, DateTime, Enum, ForeignKey, Text, Integer
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.session import Base
@@ -44,6 +45,7 @@ class Region(Base):
     __tablename__ = "regions"
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name: Mapped[str] = mapped_column(String, unique=True, index=True)
+    states: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, server_default="{}")
     notes: Mapped[str | None] = mapped_column(Text, default=None)
 
 
@@ -52,6 +54,7 @@ class BaseLocation(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     region_id: Mapped[str] = mapped_column(ForeignKey("regions.id"), index=True)
     name: Mapped[str] = mapped_column(String)
+    state: Mapped[str | None] = mapped_column(String, default=None, index=True)
     address: Mapped[str | None] = mapped_column(String, default=None)
     latitude: Mapped[float | None] = mapped_column(default=None)
     longitude: Mapped[float | None] = mapped_column(default=None)
@@ -116,3 +119,9 @@ class UnitAgentAssignment(Base):
     __tablename__ = "unit_agent_assignments"
     unit_id: Mapped[str] = mapped_column(ForeignKey("reserve_units.id"), primary_key=True)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+
+
+class UserStateAssignment(Base):
+    __tablename__ = "user_state_assignments"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    state: Mapped[str] = mapped_column(String, primary_key=True)

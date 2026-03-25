@@ -12,10 +12,19 @@
       "moby": true
     },
     "ghcr.io/devcontainers/features/terraform:1": {
-      "version": "latest"
+      "version": "1.14.8"
     },
     "ghcr.io/dhoeric/features/google-cloud-cli:1": {
       "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "2.88.1"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    },
+    "ghcr.io/devcontainers-extra/features/cmake:1": {
+      "version": "3.31.4"
     }
   },
   "forwardPorts": [5432, 8000, 8080],
@@ -29,9 +38,21 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "charliermarsh.ruff",
         "Dart-Code.dart-code",
         "Dart-Code.flutter",
-        "hashicorp.terraform"
+        "hashicorp.terraform",
+        "googlecloudtools.cloudcode",
+        "ms-azuretools.vscode-docker",
+        "cweijan.vscode-postgresql-client2",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml",
+        "github.vscode-github-actions"
       ],
       "settings": {
         "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",

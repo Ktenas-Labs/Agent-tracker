@@ -170,9 +170,25 @@ def mock_login(payload: MockLoginRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     token = create_access_token(subject=user.id, role=user.role.value)
-    return {"access_token": token, "token_type": "bearer", "user": {"id": user.id, "email": user.email, "role": user.role.value}}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role.value,
+        },
+    }
 
 
 @router.get("/auth/me")
 def me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "email": user.email, "role": user.role.value}
+    return {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "role": user.role.value,
+    }
