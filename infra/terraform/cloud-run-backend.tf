@@ -46,12 +46,22 @@ resource "google_cloud_run_v2_service" "backend" {
 
       env {
         name  = "ALLOWED_ORIGINS"
-        value = "*"
+        value = var.domain != "" ? "https://${var.domain},https://agent-tracker-web-4qq3nzm4qq-uc.a.run.app" : "*"
       }
 
       env {
         name  = "ALLOWED_HOSTS"
         value = "*"
+      }
+
+      env {
+        name  = "RESTRICT_LOGIN_TO_KNOWN_USERS"
+        value = var.environment == "prod" ? "true" : "false"
+      }
+
+      env {
+        name  = "GOOGLE_WORKSPACE_DOMAIN"
+        value = var.domain != "" ? var.domain : ""
       }
 
       env {
@@ -126,7 +136,7 @@ resource "google_cloud_run_v2_service" "backend" {
 
       env {
         name  = "GOOGLE_REDIRECT_URI"
-        value = "${google_cloud_run_v2_service.backend[0].uri}/api/v1/auth/google/callback"
+        value = var.backend_api_url != "" ? "${var.backend_api_url}/api/v1/auth/google/callback" : ""
       }
 
       startup_probe {
@@ -153,10 +163,11 @@ resource "google_cloud_run_v2_service" "backend" {
   ]
 }
 
-resource "google_cloud_run_v2_service_iam_member" "backend_public" {
-  count    = var.backend_image != "" ? 1 : 0
-  name     = google_cloud_run_v2_service.backend[0].name
-  location = var.region
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# Uncomment to make the backend publicly accessible
+# resource "google_cloud_run_v2_service_iam_member" "backend_public" {
+#   count    = var.backend_image != "" ? 1 : 0
+#   name     = google_cloud_run_v2_service.backend[0].name
+#   location = var.region
+#   role     = "roles/run.invoker"
+#   member   = "allUsers"
+# }

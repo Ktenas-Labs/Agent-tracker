@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../app/theme.dart';
 import '../core/firebase_state.dart';
@@ -12,8 +11,13 @@ import 'google_cloud_sign_in.dart' as gcp;
 
 final api = ApiService();
 
+const _apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:8000/api/v1',
+);
+
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000/api/v1'));
+  final Dio _dio = Dio(BaseOptions(baseUrl: _apiBaseUrl));
   String? _token;
 
   Future<Map<String, dynamic>> signInWithGoogleCloud() async {
@@ -384,13 +388,7 @@ class _IntegrationsTabState extends State<_IntegrationsTab> {
       final data = await api.getGoogleConnectUrl();
       final url = data['url'] as String?;
       if (url == null) throw StateError('No URL returned');
-      final uri = Uri.parse(url);
-      if (kIsWeb) {
-        // On web, open in same tab so the OAuth callback redirect lands back here.
-        await launchUrl(uri, webOnlyWindowName: '_self');
-      } else {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      html.window.location.href = url;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

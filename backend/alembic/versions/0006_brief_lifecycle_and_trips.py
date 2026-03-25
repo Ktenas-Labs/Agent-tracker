@@ -36,14 +36,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # ── Extend briefstatus enum ──────────────────────────────────────────────
-    # PostgreSQL: ADD VALUE must be committed before the new values can be
-    # referenced in the same session. We explicitly commit the outer Alembic
-    # transaction, add the values (each ADD VALUE auto-commits in PG), then
-    # open a new transaction for the remaining transactional DDL.
+    # PostgreSQL requires ADD VALUE to run outside a transaction and be
+    # committed before the new values can be used.  We drop down to the raw
+    # DBAPI connection so we can toggle autocommit cleanly.
     conn = op.get_bind()
     conn.execute(text("COMMIT"))
-    conn.execute(text("ALTER TYPE briefstatus ADD VALUE IF NOT EXISTS 'draft'"))
-    conn.execute(text("ALTER TYPE briefstatus ADD VALUE IF NOT EXISTS 'outreach'"))
+    raw = conn.connection.dbapi_connection
+    raw.autocommit = True
+    raw.execute("ALTER TYPE briefstatus ADD VALUE IF NOT EXISTS 'draft'")
+    raw.execute("ALTER TYPE briefstatus ADD VALUE IF NOT EXISTS 'outreach'")
+    raw.autocommit = False
     conn.execute(text("BEGIN"))
 
     # ── Extend briefs table ──────────────────────────────────────────────────

@@ -86,7 +86,7 @@ async def google_connect_callback(
     """Handle OAuth redirect from Google; persist refresh token on the user."""
     if error:
         log.warning("Google OAuth error: %s", error)
-        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/settings?google=error")
+        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/?google=error")
 
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
@@ -112,13 +112,13 @@ async def google_connect_callback(
         )
     if resp.status_code >= 400:
         log.error("Token exchange failed: %s", resp.text)
-        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/settings?google=error")
+        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/?google=error")
 
     token_data = resp.json()
     refresh_token = token_data.get("refresh_token")
     if not refresh_token:
         log.error("No refresh_token returned (did you use prompt=consent?)")
-        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/settings?google=error")
+        return RedirectResponse(url=f"{settings.allowed_origins.split(',')[0]}/?google=error")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -130,7 +130,7 @@ async def google_connect_callback(
     db.commit()
 
     frontend_origin = settings.allowed_origins.split(",")[0].strip()
-    return RedirectResponse(url=f"{frontend_origin}/settings?google=connected")
+    return RedirectResponse(url=f"{frontend_origin}/?google=connected")
 
 
 @router.get(

@@ -39,10 +39,11 @@ resource "google_cloud_run_v2_service" "frontend" {
   depends_on = [google_project_service.apis]
 }
 
-resource "google_cloud_run_v2_service_iam_member" "frontend_public" {
-  count    = var.frontend_image != "" ? 1 : 0
-  name     = google_cloud_run_v2_service.frontend[0].name
-  location = var.region
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# Uncomment to make the frontend publicly accessible
+# resource "google_cloud_run_v2_service_iam_member" "frontend_public" {
+#   count    = var.frontend_image != "" ? 1 : 0
+#   name     = google_cloud_run_v2_service.frontend[0].name
+#   location = var.region
+#   role     = "roles/run.invoker"
+#   member   = "allUsers"
+# }

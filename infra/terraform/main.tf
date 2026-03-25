@@ -12,12 +12,10 @@ terraform {
     }
   }
 
-  # Uncomment after creating the bucket:
-  #   gsutil mb -l <region> gs://<project_id>-tfstate
-  # backend "gcs" {
-  #   bucket = "<project_id>-tfstate"
-  #   prefix = "agent-tracker"
-  # }
+  backend "gcs" {
+    bucket = "ktenas-agent-tracker-tfstate"
+    prefix = "agent-tracker"
+  }
 }
 
 provider "google" {
