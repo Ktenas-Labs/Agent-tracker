@@ -19,6 +19,14 @@ resource "google_project_iam_member" "backend_secrets" {
   member  = "serviceAccount:${google_service_account.backend.email}"
 }
 
+# Allows the backend service account to verify Firebase / Identity Platform ID tokens
+# via the Firebase Admin SDK using Application Default Credentials (Workload Identity).
+resource "google_project_iam_member" "backend_firebase_admin" {
+  project = var.project_id
+  role    = "roles/firebase.sdkAdminServiceAgent"
+  member  = "serviceAccount:${google_service_account.backend.email}"
+}
+
 # ---------- Frontend Cloud Run service account ----------
 
 resource "google_service_account" "frontend" {

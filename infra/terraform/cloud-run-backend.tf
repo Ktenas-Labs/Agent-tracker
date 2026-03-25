@@ -60,6 +60,16 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
+        name  = "FIREBASE_AUTH_ENABLED"
+        value = "true"
+      }
+
+      env {
+        name  = "FIREBASE_PROJECT_ID"
+        value = var.project_id
+      }
+
+      env {
         name  = "COOKIE_SECURE"
         value = "true"
       }
@@ -102,6 +112,21 @@ resource "google_cloud_run_v2_service" "backend" {
             version = "latest"
           }
         }
+      }
+
+      env {
+        name = "GOOGLE_TOKEN_ENCRYPTION_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.google_token_encryption_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name  = "GOOGLE_REDIRECT_URI"
+        value = "${google_cloud_run_v2_service.backend[0].uri}/api/v1/auth/google/callback"
       }
 
       startup_probe {

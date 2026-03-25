@@ -24,6 +24,17 @@ def _split_display_name(name: str | None) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
+def _user_payload(user: User) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "role": user.role.value,
+        "is_admin": user.is_admin,
+    }
+
+
 class FirebaseTokenRequest(BaseModel):
     id_token: str
 
@@ -33,11 +44,12 @@ class MockLoginRequest(BaseModel):
     first_name: str = "Demo"
     last_name: str = "User"
     role: str = "agent"
+    is_admin: bool = False
 
 
 @router.post("/auth/firebase")
 def auth_firebase(payload: FirebaseTokenRequest, db: Session = Depends(get_db)):
-    """Exchange a Firebase / Identity Platform ID token for an app JWT (Google Cloud–managed sign-in)."""
+    """Exchange a Firebase / Identity Platform ID token for an app JWT."""
     if not settings.firebase_auth_enabled:
         raise HTTPException(status_code=404, detail="Firebase auth is not enabled")
     from app.services.firebase_auth import verify_firebase_id_token
@@ -52,12 +64,21 @@ def auth_firebase(payload: FirebaseTokenRequest, db: Session = Depends(get_db)):
     first, last = _split_display_name(claims.get("name"))
     user = db.query(User).filter(User.email == email).first()
     if not user:
+        if settings.restrict_login_to_known_users:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"No account found for {email}. "
+                    "Ask your administrator to add you, or sync users from Google Workspace."
+                ),
+            )
         user = User(
             id=str(uuid.uuid4()),
             email=email,
             first_name=first,
             last_name=last,
             role=UserRole.agent,
+            is_admin=False,
         )
         db.add(user)
         db.commit()
@@ -66,7 +87,7 @@ def auth_firebase(payload: FirebaseTokenRequest, db: Session = Depends(get_db)):
     return {
         "token_type": "bearer",
         "access_token": access_token,
-        "user": {"id": user.id, "email": user.email, "role": user.role.value},
+        "user": _user_payload(user),
         "firebase_uid": claims.get("uid") or claims.get("sub"),
     }
 
@@ -76,7 +97,7 @@ def google_login_url():
     if not settings.google_client_id or not settings.google_redirect_uri:
         return {"configured": False, "note": "Set GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI in env"}
     state = secrets.token_urlsafe(24)
-    scope = "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.send"
+    scope = settings.google_workspace_scopes
     query = urlencode(
         {
             "client_id": settings.google_client_id,
@@ -130,12 +151,20 @@ async def google_callback(code: str | None = None, state: str | None = None, db:
         raise HTTPException(status_code=400, detail="Google account missing email")
     user = db.query(User).filter(User.email == email).first()
     if not user:
+        if settings.restrict_login_to_known_users:
+            raise HTTPException(
+                status_code=403,
+                detail=f"No account found for {email}. Ask your administrator to add you.",
+            )
+        first_name = userinfo.get("given_name") or "Google"
+        last_name = userinfo.get("family_name") or "User"
         user = User(
             id=str(uuid.uuid4()),
             email=email,
-            first_name="Google",
-            last_name="User",
+            first_name=first_name,
+            last_name=last_name,
             role=UserRole.agent,
+            is_admin=False,
         )
         db.add(user)
         db.commit()
@@ -143,9 +172,8 @@ async def google_callback(code: str | None = None, state: str | None = None, db:
     access_token = create_access_token(subject=user.id, role=user.role.value)
     return {
         "oauth": "ok",
-        "google_token_received": "access_token" in token_payload,
         "access_token": access_token,
-        "user": {"id": user.id, "email": user.email, "role": user.role.value},
+        "user": _user_payload(user),
     }
 
 
@@ -165,30 +193,15 @@ def mock_login(payload: MockLoginRequest, db: Session = Depends(get_db)):
             first_name=payload.first_name,
             last_name=payload.last_name,
             role=role,
+            is_admin=payload.is_admin,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
     token = create_access_token(subject=user.id, role=user.role.value)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "role": user.role.value,
-        },
-    }
+    return {"access_token": token, "token_type": "bearer", "user": _user_payload(user)}
 
 
 @router.get("/auth/me")
 def me(user: User = Depends(get_current_user)):
-    return {
-        "id": user.id,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "role": user.role.value,
-    }
+    return _user_payload(user)

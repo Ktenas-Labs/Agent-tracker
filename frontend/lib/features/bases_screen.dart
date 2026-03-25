@@ -3,9 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/theme.dart';
 import '../core/user_state.dart';
-import 'screens.dart' show api;
+import 'screens.dart';
 
-// ── Column definitions ─────────────────────────────────────────────────────────
+// ── BasesScreen ──────────────────────────────────────────────────────────────
+
+class BasesScreen extends ConsumerWidget {
+  const BasesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Bases')),
+      body: const _BasesTable(),
+    );
+  }
+}
+
+// ── Column definitions ───────────────────────────────────────────────────────
 
 class _ColDef {
   final String id;
@@ -21,32 +35,33 @@ class _ColDef {
   });
 }
 
-const _kColumns = [
-  _ColDef(id: 'name', label: 'Name', minWidth: 80),
-  _ColDef(id: 'address', label: 'Address', minWidth: 80),
-  _ColDef(id: 'region_id', label: 'Region', minWidth: 60),
-  _ColDef(id: 'latitude', label: 'Lat', numeric: true, minWidth: 60),
-  _ColDef(id: 'longitude', label: 'Lng', numeric: true, minWidth: 60),
-  _ColDef(id: 'notes', label: 'Notes', minWidth: 80),
+const _kBaseColumns = [
+  _ColDef(id: 'name', label: 'Name', minWidth: 140),
+  _ColDef(id: 'state', label: 'State', minWidth: 80),
+  _ColDef(id: 'address', label: 'Address', minWidth: 140),
+  _ColDef(id: 'region_id', label: 'Region', minWidth: 100),
+  _ColDef(id: 'latitude', label: 'Latitude', numeric: true, minWidth: 80),
+  _ColDef(id: 'longitude', label: 'Longitude', numeric: true, minWidth: 80),
+  _ColDef(id: 'notes', label: 'Notes', minWidth: 100),
 ];
 
-// ── Screen ─────────────────────────────────────────────────────────────────────
+// ── Bases Table ──────────────────────────────────────────────────────────────
 
-class BasesScreen extends ConsumerStatefulWidget {
-  const BasesScreen({super.key});
+class _BasesTable extends ConsumerStatefulWidget {
+  const _BasesTable();
 
   @override
-  ConsumerState<BasesScreen> createState() => _BasesScreenState();
+  ConsumerState<_BasesTable> createState() => _BasesTableState();
 }
 
-class _BasesScreenState extends ConsumerState<BasesScreen> {
+class _BasesTableState extends ConsumerState<_BasesTable> {
   late Future<List<dynamic>> _future = api.getList('/bases');
 
   String _sortCol = 'name';
   bool _sortAscending = true;
 
   final Map<String, TextEditingController> _filterCtrls = {
-    for (final c in _kColumns) c.id: TextEditingController(),
+    for (final c in _kBaseColumns) c.id: TextEditingController(),
   };
 
   final _hScrollHeader = ScrollController();
@@ -63,7 +78,8 @@ class _BasesScreenState extends ConsumerState<BasesScreen> {
   void _syncH2B() {
     if (_syncing) return;
     _syncing = true;
-    if (_hScrollBody.hasClients && _hScrollBody.offset != _hScrollHeader.offset) {
+    if (_hScrollBody.hasClients &&
+        _hScrollBody.offset != _hScrollHeader.offset) {
       _hScrollBody.jumpTo(_hScrollHeader.offset);
     }
     _syncing = false;
@@ -72,7 +88,8 @@ class _BasesScreenState extends ConsumerState<BasesScreen> {
   void _syncB2H() {
     if (_syncing) return;
     _syncing = true;
-    if (_hScrollHeader.hasClients && _hScrollHeader.offset != _hScrollBody.offset) {
+    if (_hScrollHeader.hasClients &&
+        _hScrollHeader.offset != _hScrollBody.offset) {
       _hScrollHeader.jumpTo(_hScrollBody.offset);
     }
     _syncing = false;
@@ -88,22 +105,32 @@ class _BasesScreenState extends ConsumerState<BasesScreen> {
 
   List<dynamic> _process(List<dynamic> data) {
     var rows = data.where((b) {
-      for (final col in _kColumns) {
+      for (final col in _kBaseColumns) {
         final q = _filterCtrls[col.id]!.text.trim().toLowerCase();
         if (q.isEmpty) continue;
-        final v = (b[col.id] ?? '').toString().toLowerCase();
+        final v = _cellText(b, col).toLowerCase();
         if (!v.contains(q)) return false;
       }
       return true;
     }).toList();
 
     rows.sort((a, b) {
-      final av = (a[_sortCol] ?? '').toString();
-      final bv = (b[_sortCol] ?? '').toString();
+      final av = _cellText(a, _colById(_sortCol)).toLowerCase();
+      final bv = _cellText(b, _colById(_sortCol)).toLowerCase();
       return _sortAscending ? av.compareTo(bv) : bv.compareTo(av);
     });
 
     return rows;
+  }
+
+  _ColDef _colById(String id) =>
+      _kBaseColumns.firstWhere((c) => c.id == id);
+
+  static String _cellText(dynamic row, _ColDef col) {
+    final v = row[col.id];
+    if (v == null) return '—';
+    if (col.numeric && v is num) return v.toStringAsFixed(4);
+    return v.toString();
   }
 
   void _onSort(String colId) {
@@ -125,137 +152,155 @@ class _BasesScreenState extends ConsumerState<BasesScreen> {
     setState(() {});
   }
 
+  void _onRowTap(dynamic base) {
+    final name = base['name'] as String? ?? 'Unknown Base';
+    final id = base['id'] as String? ?? '';
+    showDialog(
+      context: context,
+      builder: (_) => _BaseDetailDialog(base: base, name: name, id: id),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final prefs = ref.watch(basesTablePrefsProvider);
     final prefsNotifier = ref.read(basesTablePrefsProvider.notifier);
 
     final visibleCols =
-        _kColumns.where((c) => prefs.visible[c.id] ?? true).toList();
-    final totalWidth =
-        visibleCols.fold<double>(0, (s, c) => s + (prefs.widths[c.id] ?? 180.0));
+        _kBaseColumns.where((c) => prefs.visible[c.id] ?? true).toList();
+    final totalWidth = visibleCols.fold<double>(
+        0, (s, c) => s + (prefs.widths[c.id] ?? 180.0));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bases'),
-        actions: [
-          if (_anyFilter())
-            TextButton.icon(
-              icon: const Icon(Icons.filter_alt_off_outlined, size: 16),
-              label: const Text('Clear filters'),
-              onPressed: _clearFilters,
+    return FutureBuilder<List<dynamic>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading bases: ${snapshot.error}',
+              style: const TextStyle(color: AppColors.error),
             ),
-          _ColumnsButton(
-            columns: _kColumns,
-            prefs: prefs,
-            onToggle: prefsNotifier.setVisible,
-            onReset: prefsNotifier.reset,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: FutureBuilder<List<dynamic>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error loading bases: ${snapshot.error}',
-                style: const TextStyle(color: AppColors.error),
+          );
+        }
+
+        final allRows = snapshot.data ?? [];
+        final rows = _process(allRows);
+
+        return Column(
+          children: [
+            Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: const BoxDecoration(
+                border: Border(
+                    bottom: BorderSide(color: AppColors.border, width: 1)),
               ),
-            );
-          }
-
-          final allRows = snapshot.data ?? [];
-          final rows = _process(allRows);
-
-          return Column(
-            children: [
-              // ── Sticky header + filter rows ──────────────────────────────
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: _hScrollHeader,
-                child: SizedBox(
-                  width: totalWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _HeaderRow(
-                        visibleCols: visibleCols,
-                        prefs: prefs,
-                        sortCol: _sortCol,
-                        sortAscending: _sortAscending,
-                        onSort: _onSort,
-                        onResize: (id, dx) {
-                          final minW = _kColumns
-                              .firstWhere((c) => c.id == id)
-                              .minWidth;
-                          prefsNotifier.setWidth(
-                            id,
-                            ((prefs.widths[id] ?? 180.0) + dx)
-                                .clamp(minW, 600.0),
-                          );
-                        },
-                      ),
-                      _FilterRow(
-                        visibleCols: visibleCols,
-                        prefs: prefs,
-                        filterCtrls: _filterCtrls,
-                        onChanged: () => setState(() {}),
-                      ),
-                    ],
+              child: Row(
+                children: [
+                  const Spacer(),
+                  if (_anyFilter())
+                    TextButton.icon(
+                      icon: const Icon(Icons.filter_alt_off_outlined,
+                          size: 16),
+                      label: const Text('Clear filters'),
+                      onPressed: _clearFilters,
+                    ),
+                  _ColumnsButton(
+                    columns: _kBaseColumns,
+                    prefs: prefs,
+                    onToggle: prefsNotifier.setVisible,
+                    onReset: prefsNotifier.reset,
                   ),
+                ],
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              controller: _hScrollHeader,
+              child: SizedBox(
+                width: totalWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _HeaderRow(
+                      visibleCols: visibleCols,
+                      prefs: prefs,
+                      sortCol: _sortCol,
+                      sortAscending: _sortAscending,
+                      onSort: _onSort,
+                      onResize: (id, dx) {
+                        final minW = _kBaseColumns
+                            .firstWhere((c) => c.id == id)
+                            .minWidth;
+                        prefsNotifier.setWidth(
+                          id,
+                          ((prefs.widths[id] ?? 180.0) + dx)
+                              .clamp(minW, 600.0),
+                        );
+                      },
+                    ),
+                    _FilterRow(
+                      visibleCols: visibleCols,
+                      prefs: prefs,
+                      filterCtrls: _filterCtrls,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
                 ),
               ),
-              // ── Body ─────────────────────────────────────────────────────
-              Expanded(
-                child: !snapshot.hasData
-                    ? const Center(child: CircularProgressIndicator())
-                    : rows.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.search_off,
-                                    size: 32,
-                                    color: AppColors.textDisabled),
-                                const SizedBox(height: 8),
-                                Text(
-                                  allRows.isEmpty
-                                      ? 'No bases found.'
-                                      : 'No results match the active filters.',
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          )
-                        : SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            controller: _hScrollBody,
-                            child: SizedBox(
-                              width: totalWidth,
-                              child: ListView.builder(
-                                itemCount: rows.length,
-                                itemBuilder: (ctx, i) => _DataRow(
-                                  row: rows[i],
-                                  visibleCols: visibleCols,
-                                  prefs: prefs,
-                                  isEven: i.isEven,
-                                ),
+            ),
+            Expanded(
+              child: !snapshot.hasData
+                  ? const Center(child: CircularProgressIndicator())
+                  : rows.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                allRows.isEmpty
+                                    ? Icons.location_city_outlined
+                                    : Icons.search_off,
+                                size: 32,
+                                color: AppColors.textDisabled,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                allRows.isEmpty
+                                    ? 'No bases assigned to your account'
+                                    : 'No results match the active filters.',
+                                style: const TextStyle(
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          controller: _hScrollBody,
+                          child: SizedBox(
+                            width: totalWidth,
+                            child: ListView.builder(
+                              itemCount: rows.length,
+                              itemBuilder: (ctx, i) => _DataRow(
+                                row: rows[i],
+                                visibleCols: visibleCols,
+                                prefs: prefs,
+                                isEven: i.isEven,
+                                onTap: () => _onRowTap(rows[i]),
                               ),
                             ),
                           ),
-              ),
-            ],
-          );
-        },
-      ),
+                        ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-// ── Header Row ─────────────────────────────────────────────────────────────────
+// ── Header Row ───────────────────────────────────────────────────────────────
 
 class _HeaderRow extends StatelessWidget {
   const _HeaderRow({
@@ -325,7 +370,6 @@ class _HeaderRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Resize handle
                 Positioned(
                   right: 0,
                   top: 0,
@@ -333,7 +377,8 @@ class _HeaderRow extends StatelessWidget {
                   width: 8,
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onHorizontalDragUpdate: (d) => onResize(col.id, d.delta.dx),
+                    onHorizontalDragUpdate: (d) =>
+                        onResize(col.id, d.delta.dx),
                     child: MouseRegion(
                       cursor: SystemMouseCursors.resizeColumn,
                       child: Center(
@@ -355,7 +400,7 @@ class _HeaderRow extends StatelessWidget {
   }
 }
 
-// ── Filter Row ─────────────────────────────────────────────────────────────────
+// ── Filter Row ───────────────────────────────────────────────────────────────
 
 class _FilterRow extends StatelessWidget {
   const _FilterRow({
@@ -376,7 +421,8 @@ class _FilterRow extends StatelessWidget {
       height: 40,
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+        border:
+            Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: Row(
         children: visibleCols.map((col) {
@@ -384,30 +430,33 @@ class _FilterRow extends StatelessWidget {
           return SizedBox(
             width: width,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: TextField(
                 controller: filterCtrls[col.id],
-                style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Filter…',
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  hintText: 'Filter\u2026',
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 0),
                   isDense: true,
                   filled: true,
                   fillColor: AppColors.surfaceLow,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(color: AppColors.border),
+                    borderSide:
+                        const BorderSide(color: AppColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide:
-                        BorderSide(color: AppColors.border.withAlpha(100)),
+                    borderSide: BorderSide(
+                        color: AppColors.border.withAlpha(100)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(4),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                        color: AppColors.primary, width: 1.5),
                   ),
                   hintStyle: const TextStyle(
                       fontSize: 12, color: AppColors.textDisabled),
@@ -422,7 +471,7 @@ class _FilterRow extends StatelessWidget {
   }
 }
 
-// ── Data Row ───────────────────────────────────────────────────────────────────
+// ── Data Row ─────────────────────────────────────────────────────────────────
 
 class _DataRow extends StatefulWidget {
   const _DataRow({
@@ -430,12 +479,14 @@ class _DataRow extends StatefulWidget {
     required this.visibleCols,
     required this.prefs,
     required this.isEven,
+    required this.onTap,
   });
 
   final dynamic row;
   final List<_ColDef> visibleCols;
   final BasesTablePrefs prefs;
   final bool isEven;
+  final VoidCallback onTap;
 
   @override
   State<_DataRow> createState() => _DataRowState();
@@ -456,53 +507,65 @@ class _DataRowState extends State<_DataRow> {
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          color: _hovered
-              ? AppColors.surfaceHigh
-              : widget.isEven
-                  ? Colors.transparent
-                  : const Color(0x08FFFFFF),
-          border: Border(
-            bottom: BorderSide(color: AppColors.border.withAlpha(50), width: 1),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: _hovered
+                ? AppColors.surfaceHigh
+                : widget.isEven
+                    ? Colors.transparent
+                    : const Color(0x08FFFFFF),
+            border: Border(
+              bottom: BorderSide(
+                  color: AppColors.border.withAlpha(50), width: 1),
+            ),
           ),
-        ),
-        child: Row(
-          children: widget.visibleCols.map((col) {
-            final width = widget.prefs.widths[col.id] ?? 180.0;
-            return SizedBox(
-              width: width,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: col.numeric ? 0 : 12,
-                  right: col.numeric ? 12 : 4,
-                ),
-                child: Text(
-                  _cell(col),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: col.id == 'name'
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
-                    fontWeight: col.id == 'name'
-                        ? FontWeight.w500
-                        : FontWeight.normal,
-                    fontFamily: col.id == 'region_id' ? 'monospace' : null,
+          child: Row(
+            children: widget.visibleCols.map((col) {
+              final width = widget.prefs.widths[col.id] ?? 180.0;
+              final text = _cell(col);
+
+              return SizedBox(
+                width: width,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: col.numeric ? 0 : 12,
+                    right: col.numeric ? 12 : 4,
                   ),
-                  textAlign: col.numeric ? TextAlign.end : TextAlign.start,
-                  overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: col.id == 'name'
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                      fontWeight: col.id == 'name'
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      decoration: col.id == 'name'
+                          ? TextDecoration.underline
+                          : null,
+                      decorationColor:
+                          col.id == 'name' ? AppColors.primary : null,
+                    ),
+                    textAlign:
+                        col.numeric ? TextAlign.end : TextAlign.start,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Columns selector button ────────────────────────────────────────────────────
+// ── Columns selector button ──────────────────────────────────────────────────
 
 class _ColumnsButton extends StatelessWidget {
   const _ColumnsButton({
@@ -534,7 +597,8 @@ class _ColumnsButton extends StatelessWidget {
               onChanged: (v) {
                 if (v != null) onToggle(col.id, v);
               },
-              title: Text(col.label, style: const TextStyle(fontSize: 13)),
+              title:
+                  Text(col.label, style: const TextStyle(fontSize: 13)),
               dense: true,
               controlAffinity: ListTileControlAffinity.leading,
             ),
@@ -552,6 +616,114 @@ class _ColumnsButton extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Base Detail Dialog ───────────────────────────────────────────────────────
+
+class _BaseDetailDialog extends StatelessWidget {
+  const _BaseDetailDialog({
+    required this.base,
+    required this.name,
+    required this.id,
+  });
+
+  final dynamic base;
+  final String name;
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = <(String, String)>[
+      ('Name', base['name']?.toString() ?? '—'),
+      ('State', base['state']?.toString() ?? '—'),
+      ('Address', base['address']?.toString() ?? '—'),
+      ('Region', base['region_id']?.toString() ?? '—'),
+      ('Latitude', base['latitude']?.toString() ?? '—'),
+      ('Longitude', base['longitude']?.toString() ?? '—'),
+      ('Notes', base['notes']?.toString() ?? '—'),
+    ];
+
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.location_city_outlined,
+                      size: 20, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18),
+                    color: AppColors.textSecondary,
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              for (final (label, value) in fields) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

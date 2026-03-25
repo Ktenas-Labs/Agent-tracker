@@ -18,12 +18,12 @@ Future<void> main() async {
   runApp(const ProviderScope(child: AgentTrackerApp()));
 }
 
-class AgentTrackerApp extends StatelessWidget {
+class AgentTrackerApp extends ConsumerWidget {
   const AgentTrackerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final router = buildRouter();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
       title: 'Agent Tracker',

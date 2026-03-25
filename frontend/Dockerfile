@@ -7,6 +7,7 @@ RUN flutter config --enable-web --no-analytics \
     && flutter pub get
 
 COPY . .
+
 RUN flutter create . --platforms web --no-pub \
     && flutter pub get \
     && flutter build web --release

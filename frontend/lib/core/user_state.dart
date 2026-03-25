@@ -8,6 +8,7 @@ class UserProfile {
   final String firstName;
   final String lastName;
   final String role;
+  final bool isAdmin;
 
   const UserProfile({
     required this.id,
@@ -15,9 +16,8 @@ class UserProfile {
     required this.firstName,
     required this.lastName,
     required this.role,
+    this.isAdmin = false,
   });
-
-  bool get isAdmin => role == 'admin';
 
   String get initials {
     final f = firstName.isNotEmpty ? firstName[0] : '';
@@ -133,4 +133,105 @@ class BasesTablePrefsNotifier extends StateNotifier<BasesTablePrefs> {
 final basesTablePrefsProvider =
     StateNotifierProvider<BasesTablePrefsNotifier, BasesTablePrefs>(
   (ref) => BasesTablePrefsNotifier(),
+);
+
+// ── BriefsTablePrefs ───────────────────────────────────────────────────────────
+
+class BriefsTablePrefs {
+  final Map<String, bool> visible;
+  final Map<String, double> widths;
+
+  static const _defaultVisible = {
+    'brief_title': true,
+    'brief_date': true,
+    'status': true,
+    'alt_address_state': true,
+    'alt_address_city': true,
+    'expected_pax': true,
+    'notes': false,
+  };
+
+  static const _defaultWidths = {
+    'brief_title': 220.0,
+    'brief_date': 120.0,
+    'status': 120.0,
+    'alt_address_state': 120.0,
+    'alt_address_city': 160.0,
+    'expected_pax': 80.0,
+    'notes': 240.0,
+  };
+
+  const BriefsTablePrefs({required this.visible, required this.widths});
+
+  factory BriefsTablePrefs.defaults() => BriefsTablePrefs(
+        visible: Map.from(_defaultVisible),
+        widths: Map.from(_defaultWidths),
+      );
+
+  BriefsTablePrefs setVisible(String col, bool v) =>
+      BriefsTablePrefs(visible: {...visible, col: v}, widths: widths);
+
+  BriefsTablePrefs setWidth(String col, double w) =>
+      BriefsTablePrefs(visible: visible, widths: {...widths, col: w});
+}
+
+class BriefsTablePrefsNotifier extends StateNotifier<BriefsTablePrefs> {
+  BriefsTablePrefsNotifier() : super(BriefsTablePrefs.defaults());
+
+  void setVisible(String col, bool v) => state = state.setVisible(col, v);
+  void setWidth(String col, double w) => state = state.setWidth(col, w);
+  void reset() => state = BriefsTablePrefs.defaults();
+}
+
+final briefsTablePrefsProvider =
+    StateNotifierProvider<BriefsTablePrefsNotifier, BriefsTablePrefs>(
+  (ref) => BriefsTablePrefsNotifier(),
+);
+
+// ── DashboardPrefs ─────────────────────────────────────────────────────────────
+
+enum DashboardWidgetId { statistics, upcomingBriefs, calendar, inbox }
+
+class DashboardPrefs {
+  final List<DashboardWidgetId> order;
+  final Set<DashboardWidgetId> hidden;
+
+  const DashboardPrefs({required this.order, this.hidden = const {}});
+
+  factory DashboardPrefs.defaults() => DashboardPrefs(
+        order: DashboardWidgetId.values.toList(),
+      );
+
+  bool isVisible(DashboardWidgetId id) => !hidden.contains(id);
+
+  DashboardPrefs withToggled(DashboardWidgetId id) {
+    final newHidden = Set<DashboardWidgetId>.from(hidden);
+    if (newHidden.contains(id)) {
+      newHidden.remove(id);
+    } else {
+      newHidden.add(id);
+    }
+    return DashboardPrefs(order: order, hidden: newHidden);
+  }
+
+  DashboardPrefs withReordered(int oldIndex, int newIndex) {
+    final newOrder = [...order];
+    if (newIndex > oldIndex) newIndex--;
+    newOrder.insert(newIndex, newOrder.removeAt(oldIndex));
+    return DashboardPrefs(order: newOrder, hidden: hidden);
+  }
+}
+
+class DashboardPrefsNotifier extends StateNotifier<DashboardPrefs> {
+  DashboardPrefsNotifier() : super(DashboardPrefs.defaults());
+
+  void toggle(DashboardWidgetId id) => state = state.withToggled(id);
+  void reorder(int oldIndex, int newIndex) =>
+      state = state.withReordered(oldIndex, newIndex);
+  void reset() => state = DashboardPrefs.defaults();
+}
+
+final dashboardPrefsProvider =
+    StateNotifierProvider<DashboardPrefsNotifier, DashboardPrefs>(
+  (ref) => DashboardPrefsNotifier(),
 );

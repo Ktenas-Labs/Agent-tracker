@@ -30,28 +30,28 @@ class NavItem {
 
 const _defaultItems = [
   NavItem(id: 'dashboard', label: 'Dashboard', route: '/dashboard', icon: Icons.dashboard_outlined),
-  NavItem(id: 'bases', label: 'Bases', route: '/bases', icon: Icons.location_city_outlined),
-  NavItem(id: 'units', label: 'Reserve Units', route: '/units', icon: Icons.groups_outlined),
   NavItem(id: 'briefs', label: 'Briefs', route: '/briefs', icon: Icons.event_note_outlined),
-  NavItem(id: 'performance', label: 'Performance', route: '/performance', icon: Icons.bar_chart),
-  NavItem(id: 'reports', label: 'Reports', route: '/reports', icon: Icons.assessment_outlined),
-  NavItem(id: 'admin', label: 'Admin', route: '/admin', icon: Icons.admin_panel_settings_outlined),
-  NavItem(id: 'settings', label: 'Settings', route: '/settings', icon: Icons.settings_outlined, adminOnly: true),
+  NavItem(id: 'bases', label: 'Bases', route: '/bases', icon: Icons.location_city_outlined),
+  NavItem(id: 'resources', label: 'Resources', route: '/resources', icon: Icons.menu_book_outlined),
+  NavItem(id: 'settings', label: 'Admin', route: '/settings', icon: Icons.admin_panel_settings_outlined, adminOnly: true),
 ];
 
 class SidebarState {
   final List<NavItem> items;
   final bool editMode;
+  final bool collapsed;
 
   const SidebarState({
     required this.items,
     this.editMode = false,
+    this.collapsed = false,
   });
 
-  SidebarState copyWith({List<NavItem>? items, bool? editMode}) =>
+  SidebarState copyWith({List<NavItem>? items, bool? editMode, bool? collapsed}) =>
       SidebarState(
         items: items ?? this.items,
         editMode: editMode ?? this.editMode,
+        collapsed: collapsed ?? this.collapsed,
       );
 }
 
@@ -59,6 +59,8 @@ class SidebarNotifier extends StateNotifier<SidebarState> {
   SidebarNotifier() : super(const SidebarState(items: _defaultItems));
 
   void toggleEditMode() => state = state.copyWith(editMode: !state.editMode);
+  void toggleCollapsed() => state = state.copyWith(collapsed: !state.collapsed);
+  void setCollapsed(bool value) => state = state.copyWith(collapsed: value);
 
   void toggleVisibility(String id) {
     final updated = state.items.map((item) {

@@ -18,11 +18,20 @@ def _ensure_firebase_app() -> None:
     if firebase_admin._apps:
         _initialized = True
         return
+
     if settings.firebase_credentials_path:
         cred = credentials.Certificate(settings.firebase_credentials_path)
     else:
         cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred)
+
+    # Pass project ID explicitly when set — required when ADC cannot auto-detect it
+    # (e.g. local dev with `gcloud auth application-default login`).
+    # On Cloud Run the service account project is detected automatically.
+    options: dict = {}
+    if settings.firebase_project_id:
+        options["projectId"] = settings.firebase_project_id
+
+    firebase_admin.initialize_app(cred, options)
     _initialized = True
 
 

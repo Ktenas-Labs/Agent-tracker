@@ -1,13 +1,18 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
+import '../core/firebase_state.dart';
 import '../core/nav_state.dart';
 import '../core/user_state.dart';
 import '../app/theme.dart';
 
+const _kMobileBreakpoint = 700.0;
 const _sidebarWidth = 220.0;
+const _sidebarCollapsedWidth = 60.0;
 
 // ── Shell ──────────────────────────────────────────────────────────────────────
 
@@ -22,24 +27,72 @@ class NavigationShell extends ConsumerWidget {
     final sidebarNotifier = ref.read(sidebarProvider.notifier);
     final currentPath = GoRouterState.of(context).uri.path;
     final isAdmin = ref.watch(userProfileProvider)?.isAdmin ?? false;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < _kMobileBreakpoint;
 
-    return Column(
-      children: [
-        _TopBar(),
-        Expanded(
-          child: Row(
-            children: [
-              _Sidebar(
-                state: sidebarState,
-                notifier: sidebarNotifier,
-                currentPath: currentPath,
-                isAdmin: isAdmin,
-              ),
-              Expanded(child: child),
-            ],
-          ),
+    // Initialise collapsed state from user preference on first build.
+    // We read (not watch) to avoid a rebuild loop.
+    final prefs = ref.read(userPreferencesProvider);
+    if (!isMobile && prefs.sidebarCollapsedByDefault && !sidebarState.collapsed) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => sidebarNotifier.setCollapsed(true),
+      );
+    }
+
+    final sidebarContent = _Sidebar(
+      state: sidebarState,
+      notifier: sidebarNotifier,
+      currentPath: currentPath,
+      isAdmin: isAdmin,
+      collapsed: false,
+    );
+
+    if (isMobile) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+        drawer: Drawer(
+          width: _sidebarWidth,
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          child: sidebarContent,
         ),
-      ],
+        body: Column(
+          children: [
+            const _TopBar(isMobile: true, collapsed: false),
+            const Divider(height: 1),
+            Expanded(child: child),
+          ],
+        ),
+      );
+    }
+
+    return Material(
+      child: Column(
+        children: [
+          _TopBar(isMobile: false, collapsed: sidebarState.collapsed),
+          Expanded(
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeInOut,
+                  width: sidebarState.collapsed
+                      ? _sidebarCollapsedWidth
+                      : _sidebarWidth,
+                  child: _Sidebar(
+                    state: sidebarState,
+                    notifier: sidebarNotifier,
+                    currentPath: currentPath,
+                    isAdmin: isAdmin,
+                    collapsed: sidebarState.collapsed,
+                  ),
+                ),
+                Expanded(child: child),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -47,26 +100,71 @@ class NavigationShell extends ConsumerWidget {
 // ── Top Bar ────────────────────────────────────────────────────────────────────
 
 class _TopBar extends ConsumerWidget {
+  const _TopBar({required this.isMobile, required this.collapsed});
+
+  final bool isMobile;
+  final bool collapsed;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProfileProvider);
     final prefs = ref.watch(userPreferencesProvider);
+    final sidebarNotifier = ref.read(sidebarProvider.notifier);
 
     return Container(
       height: 52,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.menu, size: 20),
+              color: AppColors.textSecondary,
+              tooltip: 'Open menu',
+              onPressed: () => Scaffold.of(context).openDrawer(),
+            )
+          else
+            _CollapseButton(
+              collapsed: collapsed,
+              onTap: sidebarNotifier.toggleCollapsed,
+            ),
           const Spacer(),
           if (user != null)
             _ProfileButton(user: user, prefs: prefs, ref: ref)
           else
             const SizedBox.shrink(),
+          const SizedBox(width: 4),
         ],
+      ),
+    );
+  }
+}
+
+class _CollapseButton extends StatelessWidget {
+  const _CollapseButton({required this.collapsed, required this.onTap});
+
+  final bool collapsed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: collapsed ? 'Expand sidebar' : 'Collapse sidebar',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Icon(
+            collapsed ? Icons.menu_open : Icons.menu,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+        ),
       ),
     );
   }
@@ -150,21 +248,18 @@ class _ProfileButton extends StatelessWidget {
       ),
       elevation: 8,
       items: [
-        // Profile header (non-interactive)
         PopupMenuItem<_MenuAction>(
           enabled: false,
           padding: EdgeInsets.zero,
           child: _ProfileHeader(user: user),
         ),
         const PopupMenuDivider(height: 1),
-        // Preferences
         _menuItem(
           value: _MenuAction.preferences,
           icon: Icons.tune_outlined,
           label: 'Preferences',
         ),
         const PopupMenuDivider(height: 1),
-        // Sign out
         _menuItem(
           value: _MenuAction.signOut,
           icon: Icons.logout_outlined,
@@ -184,9 +279,15 @@ class _ProfileButton extends StatelessWidget {
     }
   }
 
-  void _signOut(BuildContext context) {
+  Future<void> _signOut(BuildContext context) async {
+    if (firebaseAppReady) {
+      try {
+        await GoogleSignIn().signOut();
+        await FirebaseAuth.instance.signOut();
+      } catch (_) {}
+    }
     ref.read(userProfileProvider.notifier).clearUser();
-    context.go('/login');
+    if (context.mounted) context.go('/login');
   }
 
   void _showPreferencesDialog(BuildContext context) {
@@ -338,7 +439,6 @@ class _PreferencesDialog extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 12, 0),
               child: Row(
@@ -364,8 +464,7 @@ class _PreferencesDialog extends ConsumerWidget {
             ),
             const Divider(height: 16),
 
-            // Options
-            _PrefSection(title: 'Display'),
+            const _PrefSection(title: 'Display'),
             _PrefTile(
               icon: Icons.density_small_outlined,
               title: 'Compact mode',
@@ -382,7 +481,16 @@ class _PreferencesDialog extends ConsumerWidget {
             ),
 
             const Divider(height: 16),
-            // Footer
+            const _PrefSection(title: 'Sidebar'),
+            _PrefTile(
+              icon: Icons.vertical_split_outlined,
+              title: 'Collapsed by default',
+              subtitle: 'Start with icon-only sidebar on desktop',
+              value: prefs.sidebarCollapsedByDefault,
+              onChanged: (_) => notifier.toggleSidebarCollapsedByDefault(),
+            ),
+
+            const Divider(height: 16),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Row(
@@ -500,19 +608,21 @@ class _Sidebar extends StatelessWidget {
     required this.notifier,
     required this.currentPath,
     required this.isAdmin,
+    required this.collapsed,
   });
 
   final SidebarState state;
   final SidebarNotifier notifier;
   final String currentPath;
   final bool isAdmin;
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      width: _sidebarWidth,
+      width: collapsed ? _sidebarCollapsedWidth : _sidebarWidth,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
         border: Border(right: BorderSide(color: theme.dividerColor, width: 1)),
@@ -520,15 +630,24 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _Header(),
+          _Header(collapsed: collapsed),
           const Divider(height: 1, indent: 0, endIndent: 0),
           Expanded(
-            child: state.editMode
+            child: state.editMode && !collapsed
                 ? _EditList(state: state, notifier: notifier)
-                : _NavList(state: state, currentPath: currentPath, isAdmin: isAdmin),
+                : _NavList(
+                    state: state,
+                    currentPath: currentPath,
+                    isAdmin: isAdmin,
+                    collapsed: collapsed,
+                  ),
           ),
           const Divider(height: 1),
-          _Footer(editMode: state.editMode, onToggle: notifier.toggleEditMode),
+          _Footer(
+            editMode: state.editMode,
+            collapsed: collapsed,
+            onToggle: notifier.toggleEditMode,
+          ),
         ],
       ),
     );
@@ -536,37 +655,49 @@ class _Sidebar extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.collapsed});
+
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SizedBox(
       height: 52,
-      child: Row(
-        children: [
-          const SizedBox(width: 16),
-          Icon(Icons.shield, color: theme.colorScheme.primary, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Agent Tracker',
-              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
+      child: collapsed
+          ? Center(
+              child: Icon(Icons.shield, color: theme.colorScheme.primary, size: 22),
+            )
+          : Row(
+              children: [
+                const SizedBox(width: 16),
+                Icon(Icons.shield, color: theme.colorScheme.primary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Agent Tracker',
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }
 
 class _NavList extends StatelessWidget {
-  const _NavList({required this.state, required this.currentPath, required this.isAdmin});
+  const _NavList({
+    required this.state,
+    required this.currentPath,
+    required this.isAdmin,
+    required this.collapsed,
+  });
 
   final SidebarState state;
   final String currentPath;
   final bool isAdmin;
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
@@ -578,54 +709,73 @@ class _NavList extends StatelessWidget {
         final item = visible[i];
         final isActive = currentPath == item.route ||
             (item.route != '/dashboard' && currentPath.startsWith(item.route));
-        return _NavTile(item: item, isActive: isActive);
+        return _NavTile(item: item, isActive: isActive, collapsed: collapsed);
       },
     );
   }
 }
 
 class _NavTile extends StatelessWidget {
-  const _NavTile({required this.item, required this.isActive});
+  const _NavTile({
+    required this.item,
+    required this.isActive,
+    required this.collapsed,
+  });
 
   final NavItem item;
   final bool isActive;
+  final bool collapsed;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = isActive ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    final tile = Padding(
+      padding: EdgeInsets.symmetric(horizontal: collapsed ? 6 : 8, vertical: 2),
       child: Material(
         color: isActive ? theme.colorScheme.primaryContainer : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.go(item.route),
+          onTap: () {
+            Scaffold.maybeOf(context)?.closeDrawer();
+            context.go(item.route);
+          },
           child: SizedBox(
             height: 40,
-            child: Row(
-              children: [
-                const SizedBox(width: 12),
-                Icon(item.icon, size: 20, color: color),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    item.label,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: color,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            child: collapsed
+                ? Center(child: Icon(item.icon, size: 20, color: color))
+                : Row(
+                    children: [
+                      const SizedBox(width: 12),
+                      Icon(item.icon, size: 20, color: color),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: color,
+                            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
     );
+
+    if (collapsed) {
+      return Tooltip(
+        message: item.label,
+        preferBelow: false,
+        child: tile,
+      );
+    }
+    return tile;
   }
 }
 
@@ -723,13 +873,35 @@ class _EditTile extends StatelessWidget {
 }
 
 class _Footer extends StatelessWidget {
-  const _Footer({required this.editMode, required this.onToggle});
+  const _Footer({
+    required this.editMode,
+    required this.collapsed,
+    required this.onToggle,
+  });
 
   final bool editMode;
+  final bool collapsed;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
+    if (collapsed) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Tooltip(
+          message: 'Customize navigation',
+          child: IconButton(
+            onPressed: onToggle,
+            icon: Icon(
+              editMode ? Icons.check_circle_outline : Icons.tune,
+              size: 18,
+            ),
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       child: TextButton.icon(
