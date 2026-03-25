@@ -7,7 +7,8 @@ RUN flutter config --enable-web --no-analytics \
     && flutter pub get
 
 COPY . .
-RUN flutter pub get \
+RUN flutter create . --platforms web --no-pub \
+    && flutter pub get \
     && flutter build web --release
 
 FROM nginx:alpine

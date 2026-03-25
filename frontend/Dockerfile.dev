@@ -4,4 +4,4 @@ WORKDIR /app
 
 ENV FLUTTER_OPTS=--no-analytics
 
-CMD ["bash", "-lc", "flutter config --enable-web --no-analytics && flutter pub get && exec flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0"]
+CMD ["bash", "-lc", "flutter config --enable-web --no-analytics && [ -d web ] || flutter create . --platforms web --no-pub; flutter pub get && exec flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0"]
